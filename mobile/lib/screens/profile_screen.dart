@@ -24,12 +24,25 @@ class ProfileScreen extends StatelessWidget {
               children: [
                 Container(
                   height: 200,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppTheme.primaryColor,
-                    borderRadius: BorderRadius.only(
+                    borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(32),
                       bottomRight: Radius.circular(32),
                     ),
+                    image: const DecorationImage(
+                      image: NetworkImage(
+                        'https://images.unsplash.com/photo-1451187580459-43490279c0fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80',
+                      ),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  foregroundDecoration: BoxDecoration(
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(32),
+                      bottomRight: Radius.circular(32),
+                    ),
+                    color: AppTheme.primaryColor.withOpacity(0.82),
                   ),
                 ),
                 Positioned(
@@ -86,8 +99,16 @@ class ProfileScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
-                  _buildProfileOption(Icons.person_outline, 'Edit Profil', () {}),
-                  _buildProfileOption(Icons.lock_outline, 'Ubah Password', () {}),
+                  _buildProfileOption(
+                    Icons.person_outline,
+                    'Edit Profil',
+                    () => _showEditProfileSheet(context, auth),
+                  ),
+                  _buildProfileOption(
+                    Icons.lock_outline,
+                    'Ubah Password',
+                    () => _showChangePasswordSheet(context, auth),
+                  ),
                   _buildProfileOption(Icons.notifications_outlined, 'Notifikasi', () {}),
                   _buildProfileOption(Icons.language, 'Bahasa', () {}),
                   _buildProfileOption(Icons.privacy_tip_outlined, 'Kebijakan Privasi', () {}),
@@ -135,6 +156,313 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _showEditProfileSheet(
+    BuildContext context,
+    AuthProvider auth,
+  ) {
+    final user = auth.user ?? {};
+    final TextEditingController nameController =
+        TextEditingController(text: user['name']?.toString() ?? '');
+    final TextEditingController phoneController =
+        TextEditingController(text: user['phone']?.toString() ?? '');
+    final TextEditingController addressController =
+        TextEditingController(text: user['address']?.toString() ?? '');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        bool isSaving = false;
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final bottom = MediaQuery.of(context).viewInsets.bottom;
+            return Padding(
+              padding: EdgeInsets.fromLTRB(24, 16, 24, 16 + bottom),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Edit Profil',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Nama Lengkap',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: phoneController,
+                    decoration: const InputDecoration(
+                      labelText: 'No. HP',
+                    ),
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: addressController,
+                    decoration: const InputDecoration(
+                      labelText: 'Alamat',
+                    ),
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isSaving
+                          ? null
+                          : () async {
+                              setState(() {
+                                isSaving = true;
+                              });
+                              final success = await auth.updateProfile(
+                                name: nameController.text.trim(),
+                                phone: phoneController.text.trim(),
+                                address: addressController.text.trim(),
+                              );
+                              if (context.mounted) {
+                                Navigator.of(context).pop();
+                                final snackBar = SnackBar(
+                                  content: Text(
+                                    success
+                                        ? 'Profil berhasil diperbarui.'
+                                        : 'Gagal memperbarui profil.',
+                                    style: GoogleFonts.poppins(),
+                                  ),
+                                  backgroundColor: success
+                                      ? AppTheme.primaryColor
+                                      : Colors.red,
+                                );
+                                ScaffoldMessenger.of(context)
+                                    .showSnackBar(snackBar);
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: isSaving
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              'Simpan',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showChangePasswordSheet(
+    BuildContext context,
+    AuthProvider auth,
+  ) {
+    final TextEditingController currentController =
+        TextEditingController();
+    final TextEditingController newController = TextEditingController();
+    final TextEditingController confirmController =
+        TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        bool isSaving = false;
+        String? error;
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final bottom = MediaQuery.of(context).viewInsets.bottom;
+            return Padding(
+              padding: EdgeInsets.fromLTRB(24, 16, 24, 16 + bottom),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Ubah Password',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        error!,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ),
+                  TextField(
+                    controller: currentController,
+                    decoration: const InputDecoration(
+                      labelText: 'Password saat ini',
+                    ),
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: newController,
+                    decoration: const InputDecoration(
+                      labelText: 'Password baru',
+                    ),
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: confirmController,
+                    decoration: const InputDecoration(
+                      labelText: 'Konfirmasi password baru',
+                    ),
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isSaving
+                          ? null
+                          : () async {
+                              if (newController.text.trim().length < 8) {
+                                setState(() {
+                                  error =
+                                      'Password baru minimal 8 karakter.';
+                                });
+                                return;
+                              }
+                              if (newController.text.trim() !=
+                                  confirmController.text.trim()) {
+                                setState(() {
+                                  error =
+                                      'Konfirmasi password tidak sama.';
+                                });
+                                return;
+                              }
+
+                              setState(() {
+                                isSaving = true;
+                                error = null;
+                              });
+
+                              final message =
+                                  await auth.changePassword(
+                                currentPassword:
+                                    currentController.text.trim(),
+                                newPassword: newController.text.trim(),
+                                confirmPassword:
+                                    confirmController.text.trim(),
+                              );
+
+                              if (message == null) {
+                                if (context.mounted) {
+                                  Navigator.of(context).pop();
+                                  final snackBar = SnackBar(
+                                    content: Text(
+                                      'Password berhasil diubah.',
+                                      style: GoogleFonts.poppins(),
+                                    ),
+                                    backgroundColor:
+                                        AppTheme.primaryColor,
+                                  );
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(snackBar);
+                                }
+                              } else {
+                                setState(() {
+                                  isSaving = false;
+                                  error = message;
+                                });
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: isSaving
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              'Simpan Password',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

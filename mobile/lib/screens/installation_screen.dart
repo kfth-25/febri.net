@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
+import 'dart:io';
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 
@@ -27,6 +31,7 @@ class _InstallationScreenState extends State<InstallationScreen> {
   String? _error;
   String? _currentMapUrl;
   late final WebViewController _webViewController;
+  XFile? _locationImage;
 
   final List<Map<String, dynamic>> _packages = [
     {'id': '1', 'name': 'Starter Home', 'speed': '20 Mbps', 'price': 250000},
@@ -100,9 +105,66 @@ class _InstallationScreenState extends State<InstallationScreen> {
     try {
       await Future.delayed(const Duration(seconds: 1));
 
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final user = auth.user;
+      final mapLink = _currentMapUrl ?? _mapLinkController.text.trim();
+
+      final prefs = await SharedPreferences.getInstance();
+      final existingRaw = prefs.getString('installation_requests');
+      List<dynamic> list = [];
+      if (existingRaw != null && existingRaw.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(existingRaw);
+          if (decoded is List) {
+            list = decoded;
+          }
+        } catch (_) {}
+      }
+
+      final int newId = list.length + 1;
+      final nowDate = DateTime.now();
+      final now = nowDate.toIso8601String();
+
+      final request = {
+        'id': newId,
+        'created_at': now,
+        'status': 'pending',
+        'package_id': _selectedPackageId,
+        'name': _nameController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'email': _emailController.text.trim(),
+        'address': _addressController.text.trim(),
+        'schedule': _scheduleController.text.trim(),
+        'notes': _notesController.text.trim(),
+        'map_link': mapLink,
+        'photo_path': _locationImage?.path,
+        'user_id': user?['id'],
+        'user_email': user?['email'],
+      };
+
+      list.add(request);
+      await prefs.setString('installation_requests', jsonEncode(list));
+
+      final selectedPackage = _packages
+          .firstWhere((p) => p['id'].toString() == _selectedPackageId);
+      final monthLabel = '${_monthName(nowDate.month)} ${nowDate.year}';
+      final due = nowDate.add(const Duration(days: 7));
+      final dueLabel =
+          '${due.day} ${_monthName(due.month)} ${due.year}';
+
+      final unpaidBill = {
+        'id': DateTime.now().millisecondsSinceEpoch,
+        'month': monthLabel,
+        'dueDate': dueLabel,
+        'amount': selectedPackage['price'],
+        'status': 'Belum Bayar',
+        'details': selectedPackage['name'],
+      };
+
+      await prefs.setString('unpaid_bill', jsonEncode(unpaidBill));
+
       if (!mounted) return;
 
-      final mapLink = _currentMapUrl ?? _mapLinkController.text.trim();
       final locationInfo = mapLink.isNotEmpty ? mapLink : '-';
 
       final snackBar = SnackBar(
@@ -118,6 +180,8 @@ class _InstallationScreenState extends State<InstallationScreen> {
       setState(() {
         _selectedPackageId = null;
         _mapLinkController.clear();
+        _currentMapUrl = null;
+        _locationImage = null;
       });
     } catch (_) {
       if (!mounted) return;
@@ -130,6 +194,52 @@ class _InstallationScreenState extends State<InstallationScreen> {
           _submitting = false;
         });
       }
+    }
+  }
+
+  String _monthName(int month) {
+    const names = [
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
+    if (month < 1 || month > 12) return '';
+    return names[month];
+  }
+
+  Future<void> _pickLocationImage() async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1600,
+        imageQuality: 80,
+      );
+      if (picked != null) {
+        setState(() {
+          _locationImage = picked;
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      final snackBar = SnackBar(
+        content: Text(
+          'Gagal membuka galeri. Pastikan izin akses foto sudah diizinkan.',
+          style: GoogleFonts.poppins(),
+        ),
+        backgroundColor: Colors.red,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
 
@@ -375,6 +485,74 @@ class _InstallationScreenState extends State<InstallationScreen> {
                   prefixIcon: Icon(Icons.notes_outlined),
                 ),
                 maxLines: 2,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Foto Lokasi (Opsional)',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.primaryColor,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
+                    child: InkWell(
+                      onTap: _pickLocationImage,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        width: 96,
+                        height: 96,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: _locationImage == null
+                            ? Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.add_a_photo_outlined,
+                                    size: 26,
+                                    color: Colors.grey,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Pilih\nFoto',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 10,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Image.file(
+                                  File(_locationImage!.path),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      'Anda dapat mengunggah foto tampak depan rumah atau lokasi pemasangan untuk memudahkan teknisi.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 32),
               SizedBox(

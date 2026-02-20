@@ -173,4 +173,98 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<bool> updateProfile({
+    String? name,
+    String? phone,
+    String? address,
+  }) async {
+    if (_token == null || _user == null) return false;
+    final dynamic idRaw = _user!['id'];
+    if (idRaw == null) return false;
+
+    final int? userId =
+        idRaw is int ? idRaw : int.tryParse(idRaw.toString());
+    if (userId == null) return false;
+
+    final Map<String, dynamic> payload = {};
+    if (name != null) payload['name'] = name;
+    if (phone != null) payload['phone'] = phone;
+    if (address != null) payload['address'] = address;
+    if (payload.isEmpty) return false;
+
+    try {
+      final response = await http.put(
+        Uri.parse('$_baseUrl/users/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+        body: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200) {
+        final data =
+            jsonDecode(response.body) as Map<String, dynamic>;
+        _user = data;
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user', jsonEncode(data));
+
+        notifyListeners();
+        return true;
+      }
+    } catch (_) {}
+
+    return false;
+  }
+
+  Future<String?> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    if (_token == null || _user == null) {
+      return 'Anda belum masuk.';
+    }
+
+    final dynamic idRaw = _user!['id'];
+    if (idRaw == null) return 'Data akun tidak lengkap.';
+
+    final int? userId =
+        idRaw is int ? idRaw : int.tryParse(idRaw.toString());
+    if (userId == null) return 'Data akun tidak valid.';
+
+    try {
+      final response = await http.put(
+        Uri.parse('$_baseUrl/users/$userId/change-password'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+        body: jsonEncode({
+          'current_password': currentPassword,
+          'new_password': newPassword,
+          'new_password_confirmation': confirmPassword,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return null;
+      }
+
+      try {
+        final body = jsonDecode(response.body);
+        if (body is Map && body['message'] != null) {
+          return body['message'].toString();
+        }
+      } catch (_) {}
+
+      return 'Gagal mengubah password.';
+    } catch (_) {
+      return 'Gagal mengubah password.';
+    }
+  }
 }

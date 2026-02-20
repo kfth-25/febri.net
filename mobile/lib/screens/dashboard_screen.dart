@@ -6,10 +6,10 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 import 'speed_test_screen.dart';
-import 'billing_screen.dart';
 import 'support_screen.dart';
 import 'profile_screen.dart';
 import 'installation_screen.dart';
+import 'installation_status_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -26,11 +26,21 @@ class DashboardScreen extends StatelessWidget {
             // Header Section
             Container(
               padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppTheme.primaryColor,
-                borderRadius: BorderRadius.only(
+                borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(32),
                   bottomRight: Radius.circular(32),
+                ),
+                image: DecorationImage(
+                  image: const NetworkImage(
+                    'https://images.unsplash.com/photo-1451187580459-43490279c0fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80',
+                  ),
+                  fit: BoxFit.cover,
+                  colorFilter: ColorFilter.mode(
+                    AppTheme.primaryColor.withOpacity(0.80),
+                    BlendMode.srcOver,
+                  ),
                 ),
               ),
               child: Column(
@@ -197,16 +207,21 @@ class DashboardScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _buildQuickAction(
-                        context, 
-                        Icons.speed, 
-                        'Speed Test', 
+                        context,
+                        Icons.speed,
+                        'Speed Test',
                         Colors.purple,
-                        () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SpeedTestScreen())),
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SpeedTestScreen(),
+                          ),
+                        ),
                       ),
                       _buildQuickAction(
-                        context, 
-                        Icons.home_work_outlined, 
-                        'Pasang Baru', 
+                        context,
+                        Icons.home_work_outlined,
+                        'Pasang Baru',
                         Colors.blue,
                         () => Navigator.push(
                           context,
@@ -216,18 +231,29 @@ class DashboardScreen extends StatelessWidget {
                         ),
                       ),
                       _buildQuickAction(
-                        context, 
-                        Icons.support_agent, 
-                        'Bantuan', 
-                        Colors.green,
-                        () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportScreen())),
+                        context,
+                        Icons.timeline_outlined,
+                        'Status',
+                        Colors.teal,
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const InstallationStatusScreen(),
+                          ),
+                        ),
                       ),
                       _buildQuickAction(
-                        context, 
-                        Icons.settings, 
-                        'Setting', 
-                        Colors.grey,
-                        () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
+                        context,
+                        Icons.support_agent,
+                        'Bantuan',
+                        Colors.green,
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SupportScreen(),
+                          ),
+                        ),
                       ),
                     ],
                   ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),

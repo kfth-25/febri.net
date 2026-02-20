@@ -209,6 +209,8 @@ class _SupportScreenState extends State<SupportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -216,9 +218,11 @@ class _SupportScreenState extends State<SupportScreen> {
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomInset),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
@@ -293,30 +297,41 @@ class _SupportScreenState extends State<SupportScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DropdownButtonFormField<String>(
-                    value: _selectedSubscriptionId,
-                    decoration: const InputDecoration(
-                      labelText: 'Pilih langganan',
-                    ),
-                    items: _subscriptions
-                        .map(
-                          (sub) => DropdownMenuItem<String>(
-                            value: sub['id'].toString(),
-                            child: Text(
-                              sub['wifi_package']?['name']?.toString() ?? 'Langganan #${sub['id']}',
-                              style: GoogleFonts.poppins(fontSize: 14),
+                  if (_subscriptions.isEmpty && !_loadingSubs)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        'Anda belum memiliki langganan aktif. '
+                        'Fitur laporan gangguan tersedia setelah pemasangan layanan.',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    )
+                  else
+                    DropdownButtonFormField<String>(
+                      value: _selectedSubscriptionId,
+                      decoration: const InputDecoration(
+                        labelText: 'Pilih langganan',
+                      ),
+                      items: _subscriptions
+                          .map(
+                            (sub) => DropdownMenuItem<String>(
+                              value: sub['id'].toString(),
+                              child: Text(
+                                sub['wifi_package']?['name']?.toString() ?? 'Langganan #${sub['id']}',
+                                style: GoogleFonts.poppins(fontSize: 14),
+                              ),
                             ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: _loadingSubs
-                        ? null
-                        : (value) {
-                            setState(() {
-                              _selectedSubscriptionId = value;
-                            });
-                          },
-                  ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedSubscriptionId = value;
+                        });
+                      },
+                    ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _subjectController,
@@ -481,8 +496,9 @@ class _SupportScreenState extends State<SupportScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildContactCard({
     required IconData icon,
