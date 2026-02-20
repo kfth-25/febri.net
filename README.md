@@ -258,5 +258,5 @@ untuk mengetahui email/password default yang dibuat (atau buat user sendiri lewa
 - **Kontribusi**
   - Tambah fitur di masing‑masing folder (backend, web/user, mobile).
   - Ikuti pattern coding yang sudah ada (provider untuk Flutter, context/service untuk web, controller/service untuk backend).
->>>>>>> 0b0af58 (readme)
+
 
