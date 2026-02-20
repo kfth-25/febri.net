@@ -19,9 +19,16 @@ const Register = () => {
     const navigate = useNavigate();
 
     const handleChange = (e) => {
+        const { name, value } = e.target;
+        let nextValue = value;
+
+        if (name === 'phone') {
+            nextValue = value.replace(/\D/g, '');
+        }
+
         setFormData({
             ...formData,
-            [e.target.name]: e.target.value
+            [name]: nextValue
         });
     };
 
@@ -144,6 +151,7 @@ const Register = () => {
                                             id="phone"
                                             value={formData.phone}
                                             onChange={handleChange}
+                                            inputProps={{ inputMode: 'numeric' }}
                                         />
                                     </Grid>
                                     <Grid item xs={12}>

@@ -63,7 +63,7 @@ const Packages = () => {
         
         setLoading(true);
         try {
-            await requestSubscription(selectedPackage.id);
+            await requestSubscription(selectedPackage);
             setOpenConfirm(false);
             setOpenSuccess(true);
         } catch (error) {
@@ -119,107 +119,116 @@ const Packages = () => {
                         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
                             <CircularProgress size={60} />
                         </Box>
+                    ) : packages.length === 0 ? (
+                        <Box sx={{ textAlign: 'center', py: 8 }}>
+                            <Typography variant="h6" gutterBottom>
+                                Belum ada paket internet yang tersedia
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                Silakan hubungi admin untuk mengatur paket di sistem terlebih dahulu.
+                            </Typography>
+                        </Box>
                     ) : (
-                    <motion.div
-                        variants={containerVariants}
-                        initial="hidden"
-                        animate="visible"
-                    >
-                        <Grid container spacing={4} alignItems="flex-start" justifyContent="center">
-                            {packages.map((pkg) => (
-                                <Grid item key={pkg.id} xs={12} md={3}>
-                                    <motion.div variants={itemVariants}>
-                                        <Card 
-                                            elevation={pkg.recommended ? 8 : 1}
-                                            sx={{ 
-                                                borderRadius: 4,
-                                                position: 'relative',
-                                                overflow: 'visible',
-                                                border: pkg.recommended ? '2px solid' : '1px solid',
-                                                borderColor: pkg.recommended ? 'secondary.main' : 'divider',
-                                                transition: '0.3s',
-                                                transform: pkg.recommended ? 'scale(1.05)' : 'none',
-                                                '&:hover': {
-                                                    transform: pkg.recommended ? 'scale(1.08)' : 'translateY(-10px)',
-                                                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                                                }
-                                            }}
-                                        >
-                                            {pkg.recommended && (
-                                                <Chip 
-                                                    label="MOST POPULAR" 
-                                                    color="secondary" 
-                                                    size="small" 
-                                                    sx={{ 
-                                                        position: 'absolute', 
-                                                        top: -12, 
-                                                        left: '50%', 
-                                                        transform: 'translateX(-50%)',
-                                                        fontWeight: 'bold',
-                                                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                                                    }} 
-                                                />
-                                            )}
-                                            <CardContent sx={{ p: 4, textAlign: 'center' }}>
-                                                <Typography variant="h6" component="h3" color="text.secondary" gutterBottom fontWeight="bold">
-                                                    {pkg.name}
-                                                </Typography>
-                                                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'baseline', my: 2 }}>
-                                                    <Typography variant="h6" color="text.secondary" sx={{ alignSelf: 'flex-start' }}>Rp</Typography>
-                                                    <Typography variant="h3" color="text.primary" fontWeight="800">
-                                                        {(pkg.price / 1000).toLocaleString('id-ID')}
+                        <motion.div
+                            variants={containerVariants}
+                            initial="hidden"
+                            animate="visible"
+                        >
+                            <Grid container spacing={4} alignItems="flex-start" justifyContent="center">
+                                {packages.map((pkg) => (
+                                    <Grid item key={pkg.id} xs={12} md={3}>
+                                        <motion.div variants={itemVariants}>
+                                            <Card 
+                                                elevation={pkg.recommended ? 8 : 1}
+                                                sx={{ 
+                                                    borderRadius: 4,
+                                                    position: 'relative',
+                                                    overflow: 'visible',
+                                                    border: pkg.recommended ? '2px solid' : '1px solid',
+                                                    borderColor: pkg.recommended ? 'secondary.main' : 'divider',
+                                                    transition: '0.3s',
+                                                    transform: pkg.recommended ? 'scale(1.05)' : 'none',
+                                                    '&:hover': {
+                                                        transform: pkg.recommended ? 'scale(1.08)' : 'translateY(-10px)',
+                                                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                                                    }
+                                                }}
+                                            >
+                                                {pkg.recommended && (
+                                                    <Chip 
+                                                        label="MOST POPULAR" 
+                                                        color="secondary" 
+                                                        size="small" 
+                                                        sx={{ 
+                                                            position: 'absolute', 
+                                                            top: -12, 
+                                                            left: '50%', 
+                                                            transform: 'translateX(-50%)',
+                                                            fontWeight: 'bold',
+                                                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                                                        }} 
+                                                    />
+                                                )}
+                                                <CardContent sx={{ p: 4, textAlign: 'center' }}>
+                                                    <Typography variant="h6" component="h3" color="text.secondary" gutterBottom fontWeight="bold">
+                                                        {pkg.name}
                                                     </Typography>
-                                                    <Typography variant="h6" color="text.secondary">rb</Typography>
-                                                </Box>
-                                                <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 3 }}>
-                                                    / bulan
-                                                </Typography>
-                                                
-                                                <Box 
-                                                    sx={{ 
-                                                        bgcolor: 'primary.main', 
-                                                        color: 'white', 
-                                                        py: 1, 
-                                                        px: 2, 
-                                                        borderRadius: 2,
-                                                        mb: 4,
-                                                        display: 'inline-block'
-                                                    }}
-                                                >
-                                                    <Typography variant="h6" fontWeight="bold">
-                                                        {pkg.speed}
+                                                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'baseline', my: 2 }}>
+                                                        <Typography variant="h6" color="text.secondary" sx={{ alignSelf: 'flex-start' }}>Rp</Typography>
+                                                        <Typography variant="h3" color="text.primary" fontWeight="800">
+                                                            {(pkg.price / 1000).toLocaleString('id-ID')}
+                                                        </Typography>
+                                                        <Typography variant="h6" color="text.secondary">rb</Typography>
+                                                    </Box>
+                                                    <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 3 }}>
+                                                        / bulan
                                                     </Typography>
-                                                </Box>
+                                                    
+                                                    <Box 
+                                                        sx={{ 
+                                                            bgcolor: 'primary.main', 
+                                                            color: 'white', 
+                                                            py: 1, 
+                                                            px: 2, 
+                                                            borderRadius: 2,
+                                                            mb: 4,
+                                                            display: 'inline-block'
+                                                        }}
+                                                    >
+                                                        <Typography variant="h6" fontWeight="bold">
+                                                            {pkg.speed}
+                                                        </Typography>
+                                                    </Box>
 
-                                                <Box component="ul" sx={{ p: 0, m: 0, listStyle: 'none', textAlign: 'left' }}>
-                                                    {pkg.features.map((feature, idx) => (
-                                                        <Box component="li" key={idx} sx={{ display: 'flex', gap: 1.5, mb: 1.5, alignItems: 'center' }}>
-                                                            <CheckCircleIcon color="secondary" sx={{ fontSize: 20 }} />
-                                                            <Typography variant="body2" color="text.primary">
-                                                                {feature}
-                                                            </Typography>
-                                                        </Box>
-                                                    ))}
-                                                </Box>
-                                            </CardContent>
-                                            <CardActions sx={{ p: 3, pt: 0 }}>
-                                                <Button 
-                                                    fullWidth 
-                                                    variant={pkg.recommended ? "contained" : "outlined"} 
-                                                    color={pkg.recommended ? "secondary" : "primary"}
-                                                    size="large"
-                                                    onClick={() => handleSelectPackage(pkg)}
-                                                    sx={{ fontWeight: 'bold' }}
-                                                >
-                                                    {user ? 'Upgrade Paket' : 'Pilih Paket'}
-                                                </Button>
-                                            </CardActions>
-                                        </Card>
-                                    </motion.div>
-                                </Grid>
-                            ))}
-                        </Grid>
-                    </motion.div>
+                                                    <Box component="ul" sx={{ p: 0, m: 0, listStyle: 'none', textAlign: 'left' }}>
+                                                        {pkg.features.map((feature, idx) => (
+                                                            <Box component="li" key={idx} sx={{ display: 'flex', gap: 1.5, mb: 1.5, alignItems: 'center' }}>
+                                                                <CheckCircleIcon color="secondary" sx={{ fontSize: 20 }} />
+                                                                <Typography variant="body2" color="text.primary">
+                                                                    {feature}
+                                                                </Typography>
+                                                            </Box>
+                                                        ))}
+                                                    </Box>
+                                                </CardContent>
+                                                <CardActions sx={{ p: 3, pt: 0 }}>
+                                                    <Button 
+                                                        fullWidth 
+                                                        variant={pkg.recommended ? "contained" : "outlined"} 
+                                                        color={pkg.recommended ? "secondary" : "primary"}
+                                                        size="large"
+                                                        onClick={() => handleSelectPackage(pkg)}
+                                                        sx={{ fontWeight: 'bold' }}
+                                                    >
+                                                        {user ? 'Upgrade Paket' : 'Pilih Paket'}
+                                                    </Button>
+                                                </CardActions>
+                                            </Card>
+                                        </motion.div>
+                                    </Grid>
+                                ))}
+                            </Grid>
+                        </motion.div>
                     )}
                 </Container>
             </Box>

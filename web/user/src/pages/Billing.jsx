@@ -12,12 +12,15 @@ import StoreIcon from '@mui/icons-material/Store';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { getBillingHistory, getUnpaidBill, addBillingHistoryItem, clearUnpaidBill } from '../services/billingService';
 import { getMySubscriptions } from '../services/subscriptionService';
+import { useAuth } from '../context/AuthContext';
 
 const Billing = () => {
     const [history, setHistory] = useState([]);
     const [unpaidBill, setUnpaidBill] = useState(null);
     const [loading, setLoading] = useState(true);
     const [hasSubscription, setHasSubscription] = useState(true);
+    const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+    const [installationRequest, setInstallationRequest] = useState(null);
     const [openPayment, setOpenPayment] = useState(false);
     const [selectedMethod, setSelectedMethod] = useState(null);
     const [paymentSuccess, setPaymentSuccess] = useState(false);
@@ -26,6 +29,7 @@ const Billing = () => {
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const location = useLocation();
+    const { user } = useAuth();
 
     useEffect(() => {
         const fetchData = async () => {
@@ -36,10 +40,13 @@ const Billing = () => {
                     getUnpaidBill()
                 ]);
 
-                const active = Array.isArray(subs) && subs.length > 0;
-                setHasSubscription(active);
+                const hasAnySubscription = Array.isArray(subs) && subs.length > 0;
+                const activeSubscription = hasAnySubscription && subs.some((item) => item.status === 'active');
 
-                if (active) {
+                setHasSubscription(hasAnySubscription);
+                setHasActiveSubscription(activeSubscription);
+
+                if (activeSubscription) {
                     setHistory(historyData || []);
                     setUnpaidBill(billData || null);
                 } else {
@@ -49,6 +56,7 @@ const Billing = () => {
             } catch (error) {
                 console.error("Error fetching billing data:", error);
                 setHasSubscription(false);
+                setHasActiveSubscription(false);
             } finally {
                 setLoading(false);
             }
@@ -56,6 +64,46 @@ const Billing = () => {
 
         fetchData();
     }, []);
+
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem('installation_requests');
+            if (!raw) return;
+            const list = JSON.parse(raw);
+            if (!Array.isArray(list) || list.length === 0) return;
+
+            let candidate = null;
+
+            if (user) {
+                const filtered = list.filter((item) => {
+                    if (item.userId && user.id && item.userId === user.id) {
+                        return true;
+                    }
+                    if (!item.userId && item.userEmail && user.email && item.userEmail === user.email) {
+                        return true;
+                    }
+                    return false;
+                });
+
+                if (filtered.length > 0) {
+                    candidate = filtered[filtered.length - 1];
+                } else {
+                    const anyTagged = list.some((item) => item.userId || item.userEmail);
+                    if (!anyTagged) {
+                        candidate = list[list.length - 1];
+                    }
+                }
+            } else {
+                candidate = list[list.length - 1];
+            }
+
+            if (candidate) {
+                setInstallationRequest(candidate);
+            }
+        } catch {
+            setInstallationRequest(null);
+        }
+    }, [user]);
 
     useEffect(() => {
         if (unpaidBill && location.state && location.state.openPaymentOnLoad) {
@@ -232,6 +280,8 @@ const Billing = () => {
         );
     };
 
+    const installationPending = !!installationRequest && !hasActiveSubscription;
+
     return (
         <Layout>
             <Container maxWidth="lg" sx={{ py: 6, mt: 14 }}>
@@ -249,7 +299,7 @@ const Billing = () => {
                         </Typography>
                     </Box>
 
-                    {!loading && !hasSubscription ? (
+                    {!loading && !hasSubscription && !installationPending ? (
                         <Box sx={{ maxWidth: 640 }}>
                             <Alert severity="warning" sx={{ borderRadius: 3, p: 3, mb: 3 }}>
                                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
@@ -275,6 +325,57 @@ const Billing = () => {
                                         onClick={() => window.location.assign('/installation')}
                                     >
                                         Ajukan Pemasangan Baru
+                                    </Button>
+                                </Grid>
+                            </Grid>
+                        </Box>
+                    ) : installationPending && !hasActiveSubscription ? (
+                        <Box sx={{ maxWidth: 720 }}>
+                            <Alert severity="info" sx={{ borderRadius: 3, p: 3, mb: 3 }}>
+                                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                    Pemasangan Sedang Diproses
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                    Permohonan pemasangan WiFi Anda sudah diterima. Tagihan akan muncul setelah pemasangan selesai dan layanan aktif.
+                                </Typography>
+                                {installationRequest && (
+                                    <Box sx={{ mt: 1 }}>
+                                        <Typography variant="body2">
+                                            Nomor Permohonan: <strong>#{installationRequest.id}</strong>
+                                        </Typography>
+                                        {installationRequest.created_at && (
+                                            <Typography variant="body2">
+                                                Tanggal Permohonan:{' '}
+                                                <strong>
+                                                    {new Date(installationRequest.created_at).toLocaleString('id-ID', {
+                                                        day: 'numeric',
+                                                        month: 'short',
+                                                        year: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
+                                                </strong>
+                                            </Typography>
+                                        )}
+                                    </Box>
+                                )}
+                            </Alert>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12} sm="auto">
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        onClick={() => window.location.assign('/installation-status')}
+                                    >
+                                        Lihat Status Pemasangan
+                                    </Button>
+                                </Grid>
+                                <Grid item xs={12} sm="auto">
+                                    <Button
+                                        variant="outlined"
+                                        onClick={() => window.location.assign('/support')}
+                                    >
+                                        Hubungi Bantuan
                                     </Button>
                                 </Grid>
                             </Grid>

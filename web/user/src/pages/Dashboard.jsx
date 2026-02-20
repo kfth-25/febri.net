@@ -61,8 +61,8 @@ const Dashboard = () => {
         status: subscription?.status || 'inactive',
         nextBilling: unpaidBill?.dueDate || 'Tidak ada tagihan berjalan',
         amount: unpaidBill?.amount || subscription?.wifi_package?.price || 0,
-        usage: 150,
-        limit: 500
+        usage: subscription?.usage ?? null,
+        limit: subscription?.limit ?? null
     };
 
     const handleLogout = async () => {
@@ -191,20 +191,45 @@ const Dashboard = () => {
             );
         }
 
+        const hasUsageData = currentService.usage !== null && currentService.limit !== null;
+
         return (
             <Box sx={{ mb: 4, p: 3, bgcolor: 'background.default', borderRadius: 3, border: '1px dashed', borderColor: 'divider' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="body2" color="text.secondary">Pemakaian Bulan Ini</Typography>
-                    <Typography variant="body2" fontWeight="bold">{currentService.usage} GB / {currentService.limit} GB</Typography>
-                </Box>
-                <LinearProgress 
-                    variant="determinate" 
-                    value={(currentService.usage / currentService.limit) * 100} 
-                    sx={{ height: 10, borderRadius: 5, bgcolor: 'grey.200', '& .MuiLinearProgress-bar': { borderRadius: 5, bgcolor: 'success.main' } }}
-                />
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    Reset pada {currentService.nextBilling}
+                <Typography variant="body2" color="text.secondary" sx={{ mb: hasUsageData ? 1 : 0 }}>
+                    Pemakaian Bulan Ini
                 </Typography>
+                {hasUsageData ? (
+                    <>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                                Total penggunaan data
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold">
+                                {currentService.usage} GB / {currentService.limit} GB
+                            </Typography>
+                        </Box>
+                        <LinearProgress
+                            variant="determinate"
+                            value={(currentService.usage / currentService.limit) * 100}
+                            sx={{
+                                height: 10,
+                                borderRadius: 5,
+                                bgcolor: 'grey.200',
+                                '& .MuiLinearProgress-bar': {
+                                    borderRadius: 5,
+                                    bgcolor: 'success.main'
+                                }
+                            }}
+                        />
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                            Reset pada {currentService.nextBilling}
+                        </Typography>
+                    </>
+                ) : (
+                    <Typography variant="body2" color="text.secondary">
+                        Data pemakaian belum tersedia. Hubungi admin jika membutuhkan laporan detail.
+                    </Typography>
+                )}
             </Box>
         );
     };

@@ -18,6 +18,7 @@ import WifiIcon from '@mui/icons-material/Wifi';
 import PlaceIcon from '@mui/icons-material/Place';
 import Layout from '../components/Layout';
 import { createSubscription } from '../services/subscriptionService';
+import { getPackages } from '../services/packageService';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -120,16 +121,17 @@ const parseLatLngFromGoogleMaps = (value) => {
         return { lat: parseFloat(pbMatch[1]), lng: parseFloat(pbMatch[3]) };
     }
 
+    const genericMatch = trimmed.match(/(-?\d+(\.\d+)?)[ ,]+(-?\d+(\.\d+)?)/);
+    if (genericMatch) {
+        return { lat: parseFloat(genericMatch[1]), lng: parseFloat(genericMatch[3]) };
+    }
+
     return null;
 };
 
 const Installation = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const packages = [
-        { id: 1, name: 'Starter Home', speed: '20 Mbps', price: 250000 },
-        { id: 2, name: 'Family Entertainment', speed: '50 Mbps', price: 350000 }
-    ];
 
     const [formData, setFormData] = useState({
         fullName: '',
@@ -142,6 +144,8 @@ const Installation = () => {
         technicianName: ''
     });
     const [mapUrl, setMapUrl] = useState('');
+    const [packages, setPackages] = useState([]);
+    const [packagesLoading, setPackagesLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
@@ -151,49 +155,78 @@ const Installation = () => {
     const [mapPosition, setMapPosition] = useState(defaultCenter);
 
     useEffect(() => {
+        const fetchPackages = async () => {
+            try {
+                const data = await getPackages();
+                setPackages(data);
+            } catch (error) {
+                setPackages([]);
+            } finally {
+                setPackagesLoading(false);
+            }
+        };
+
+        fetchPackages();
+    }, []);
+
+    useEffect(() => {
+        let preselected = null;
+        try {
+            const preselectedRaw = localStorage.getItem('preselected_technician');
+            if (preselectedRaw) {
+                preselected = JSON.parse(preselectedRaw);
+                setSelectedTechnician(preselected);
+            }
+        } catch {
+            preselected = null;
+        }
+
         if (!user) {
             setConfirmation(null);
-            setSelectedTechnician(null);
+            if (!preselected) {
+                setSelectedTechnician(null);
+            }
             return;
         }
 
         const stored = localStorage.getItem('last_installation_confirmation');
-        if (stored) {
-            try {
-                const parsed = JSON.parse(stored);
-                if (parsed.userId && user.id && parsed.userId !== user.id) {
-                    setConfirmation(null);
+        if (!stored) {
+            setConfirmation(null);
+            if (!preselected) {
+                setSelectedTechnician(null);
+            }
+            return;
+        }
+
+        try {
+            const parsed = JSON.parse(stored);
+            if (parsed.userId && user.id && parsed.userId !== user.id) {
+                setConfirmation(null);
+                if (!preselected) {
                     setSelectedTechnician(null);
-                    return;
                 }
-                if (!parsed.userId && parsed.userEmail && user.email && parsed.userEmail !== user.email) {
-                    setConfirmation(null);
+                return;
+            }
+            if (!parsed.userId && parsed.userEmail && user.email && parsed.userEmail !== user.email) {
+                setConfirmation(null);
+                if (!preselected) {
                     setSelectedTechnician(null);
-                    return;
                 }
-                setConfirmation(parsed);
+                return;
+            }
+            setConfirmation(parsed);
+            if (!preselected) {
                 if (parsed.technician) {
                     setSelectedTechnician(parsed.technician);
                 } else {
                     setSelectedTechnician(null);
                 }
-                return;
-            } catch {
-                setConfirmation(null);
-                setSelectedTechnician(null);
-            }
-        }
-
-        try {
-            const preselectedRaw = localStorage.getItem('preselected_technician');
-            if (preselectedRaw) {
-                const preselected = JSON.parse(preselectedRaw);
-                setSelectedTechnician(preselected);
-            } else {
-                setSelectedTechnician(null);
             }
         } catch {
-            setSelectedTechnician(null);
+            setConfirmation(null);
+            if (!preselected) {
+                setSelectedTechnician(null);
+            }
         }
     }, [user]);
 
@@ -256,6 +289,25 @@ const Installation = () => {
 
         if (!formData.wifiPackageId) {
             setErrorMessage('Silakan pilih paket WiFi yang Diinginkan.');
+            return;
+        }
+
+        if (formData.email) {
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailPattern.test(formData.email)) {
+                setErrorMessage('Format email tidak valid.');
+                return;
+            }
+        }
+
+        const phoneDigits = formData.phone.replace(/\D/g, '');
+        if (phoneDigits.length < 8) {
+            setErrorMessage('Nomor HP/WA tidak valid. Minimal 8 digit angka.');
+            return;
+        }
+
+        if (!mapUrl || !parseLatLngFromGoogleMaps(mapUrl)) {
+            setErrorMessage('Lokasi pemasangan wajib diisi dengan URL Google Maps yang benar atau dengan menandai titik pada peta.');
             return;
         }
 
@@ -545,26 +597,33 @@ const Installation = () => {
                                                     />
                                                 </Grid>
                                                 <Grid item xs={12} sm={6}>
-                                                    <TextField
-                                                        select
-                                                        margin="normal"
-                                                        required
-                                                        fullWidth
-                                                        label="Paket WiFi yang Diinginkan"
-                                                        value={formData.wifiPackageId}
-                                                        onChange={(e) => setFormData({ ...formData, wifiPackageId: e.target.value })}
-                                                        sx={{ mb: 2 }}
-                                                        SelectProps={{ displayEmpty: true }}
-                                                    >
-                                                        <MenuItem value="">
-                                                            <em>Pilih Paket WiFi...</em>
+                                                <TextField
+                                                    select
+                                                    margin="normal"
+                                                    required
+                                                    fullWidth
+                                                    label="Paket WiFi yang Diinginkan"
+                                                    value={formData.wifiPackageId}
+                                                    onChange={(e) => setFormData({ ...formData, wifiPackageId: e.target.value })}
+                                                    sx={{ mb: 2 }}
+                                                    SelectProps={{ displayEmpty: true }}
+                                                    disabled={packagesLoading || packages.length === 0}
+                                                >
+                                                    <MenuItem value="">
+                                                        <em>
+                                                            {packagesLoading
+                                                                ? 'Memuat paket...'
+                                                                : packages.length === 0
+                                                                ? 'Belum ada paket tersedia'
+                                                                : 'Pilih Paket WiFi...'}
+                                                        </em>
+                                                    </MenuItem>
+                                                    {packages.map((pkg) => (
+                                                        <MenuItem key={pkg.id} value={pkg.id}>
+                                                            {pkg.name} - {pkg.speed} (Rp {pkg.price})
                                                         </MenuItem>
-                                                        {packages.map((pkg) => (
-                                                            <MenuItem key={pkg.id} value={pkg.id}>
-                                                                {pkg.name} - {pkg.speed} (Rp {pkg.price})
-                                                            </MenuItem>
-                                                        ))}
-                                                    </TextField>
+                                                    ))}
+                                                </TextField>
                                                 </Grid>
                                                 <Grid item xs={12}>
                                                     <TextField
