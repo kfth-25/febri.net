@@ -1,5 +1,4 @@
-=======
-# Febri.net – Monorepo Backend, Web, dan Mobile
+# Febri.net –  Backend, Web, dan Mobile
 
 Project ini berisi tiga bagian utama:
 
