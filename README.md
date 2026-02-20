@@ -5,7 +5,7 @@ Project ini berisi tiga bagian utama:
 - **Backend API** – Laravel (folder `backend`)
 - **Web User** – React + Vite (folder `web/user`)
 - **Mobile App** – Flutter (folder `mobile`)
-
+  
 Dokumen ini menjelaskan cara menjalankan semuanya di lokal untuk keperluan development maupun demo (misalnya saat ditaruh di GitHub).
 
 ---
