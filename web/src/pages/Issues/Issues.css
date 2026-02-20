@@ -1,0 +1,75 @@
+.issues-container {
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+.issues-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.issues-title {
+  font-weight: 700 !important;
+  color: #1e293b;
+}
+
+.issues-table-card {
+  border-radius: 12px !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+  overflow: hidden;
+}
+
+.priority-chip-high {
+  background-color: #fef2f2 !important;
+  color: #b91c1c !important;
+  border-color: #fca5a5 !important;
+}
+
+.priority-chip-medium {
+  background-color: #fff7ed !important;
+  color: #c2410c !important;
+  border-color: #fdba74 !important;
+}
+
+.priority-chip-low {
+  background-color: #f0fdf4 !important;
+  color: #15803d !important;
+  border-color: #86efac !important;
+}
+
+.status-chip-open {
+  background-color: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #93c5fd !important;
+}
+
+.status-chip-in-progress {
+  background-color: #fff7ed !important;
+  color: #c2410c !important;
+  border-color: #fdba74 !important;
+}
+
+.status-chip-resolved {
+  background-color: #f0fdf4 !important;
+  color: #15803d !important;
+  border-color: #86efac !important;
+}
+
+.status-chip-closed {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.dialog-header {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 16px 24px !important;
+}
+
+.dialog-footer {
+  padding: 16px 24px !important;
+  border-top: 1px solid #e2e8f0;
+}
