@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 =======
 # Febri.net – Monorepo Backend, Web, dan Mobile
 
