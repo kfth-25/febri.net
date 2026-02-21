@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\WifiPackageController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\NetworkScanController;
 
 // Public Routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -32,7 +33,7 @@ Route::get('/speedtest/download', function () {
 });
 Route::post('/speedtest/upload', function () {
     return response()->json(['status' => 'success']);
-})->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class, \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class]);
+})->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class]);
 
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -51,4 +52,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Issue Routes
     Route::apiResource('issues', \App\Http\Controllers\IssueController::class);
+
+    Route::post('/network-scans', [NetworkScanController::class, 'store']);
 });

@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthProvider with ChangeNotifier {
-  static const String _baseUrl = 'http://127.0.0.1:8000/api';
+  static const String _baseUrl = 'http://192.168.1.3:8000/api';
 
   bool _isAuthenticated = false;
   bool _isLoading = true;

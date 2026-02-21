@@ -10,6 +10,7 @@ import 'support_screen.dart';
 import 'profile_screen.dart';
 import 'installation_screen.dart';
 import 'installation_status_screen.dart';
+import 'wifi_scanner_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -252,6 +253,18 @@ class DashboardScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (_) => const SupportScreen(),
+                          ),
+                        ),
+                      ),
+                      _buildQuickAction(
+                        context,
+                        Icons.wifi_tethering,
+                        'Perangkat',
+                        Colors.indigo,
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const WifiScannerScreen(),
                           ),
                         ),
                       ),
