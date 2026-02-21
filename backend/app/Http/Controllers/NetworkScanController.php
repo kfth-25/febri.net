@@ -5,11 +5,25 @@ namespace App\Http\Controllers;
 use App\Services\NetworkScannerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Models\Subscription;
 
 class NetworkScanController extends Controller
 {
     public function store(Request $request, NetworkScannerService $scanner): JsonResponse
     {
+        $user = $request->user();
+
+        $hasActiveSubscription = Subscription::where('user_id', $user->id)
+            ->where('status', 'active')
+            ->exists();
+
+        if (!$hasActiveSubscription) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Fitur ini hanya tersedia untuk pelanggan dengan langganan aktif.',
+            ], 403);
+        }
+
         $start = microtime(true);
         $devices = $scanner->runArpScan();
         $serverIp = $scanner->getServerIp();
@@ -44,4 +58,3 @@ class NetworkScanController extends Controller
         ]);
     }
 }
-

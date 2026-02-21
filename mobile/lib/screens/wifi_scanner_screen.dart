@@ -73,6 +73,20 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
           final authProvider =
               Provider.of<AuthProvider>(context, listen: false);
           await authProvider.logout();
+        } else if (response.statusCode == 403) {
+          String message =
+              'Fitur ini hanya tersedia untuk pelanggan dengan langganan aktif.';
+          try {
+            final body = jsonDecode(response.body);
+            if (body is Map && body['message'] != null) {
+              message = body['message'].toString();
+            }
+          } catch (_) {}
+
+          setState(() {
+            _error = message;
+            _devices = [];
+          });
         } else {
           setState(() {
             _error =
@@ -217,15 +231,35 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
       );
     }
 
+    final devices = List<Map<String, dynamic>>.from(_devices);
+    final routers =
+        devices.where((d) => d['is_gateway'] == true).toList();
+    final others =
+        devices.where((d) => d['is_gateway'] != true).toList();
+
+    others.sort((a, b) {
+      final ipA = a['ip_address']?.toString() ?? '';
+      final ipB = b['ip_address']?.toString() ?? '';
+      return ipA.compareTo(ipB);
+    });
+
+    final orderedDevices = [...routers, ...others];
+
     return ListView.separated(
-      itemCount: _devices.length,
+      itemCount: orderedDevices.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final device = _devices[index];
+        final device = orderedDevices[index];
         final ip = device['ip_address']?.toString() ?? '-';
         final mac = device['mac_address']?.toString() ?? '-';
         final vendor = device['vendor']?.toString();
+        final hostname = device['hostname']?.toString();
         final isGateway = device['is_gateway'] == true;
+        final icon = _iconForDevice(device);
+        final color = isGateway
+            ? AppTheme.primaryColor
+            : Colors.grey[700] ?? Colors.grey;
+        final label = _labelForDevice(device);
 
         return Container(
           padding: const EdgeInsets.all(16),
@@ -252,8 +286,8 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  isGateway ? Icons.router : Icons.devices_other,
-                  color: isGateway ? AppTheme.primaryColor : Colors.grey[700],
+                  icon,
+                  color: color,
                 ),
               ),
               const SizedBox(width: 12),
@@ -265,7 +299,11 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            ip,
+                            _titleForDevice(
+                              ip: ip,
+                              hostname: hostname,
+                              isGateway: isGateway,
+                            ),
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -295,6 +333,21 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
                       ],
                     ),
                     const SizedBox(height: 4),
+                    Text(
+                      label,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    if (hostname != null && hostname.isNotEmpty)
+                      Text(
+                        'Hostname: $hostname',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: Colors.grey[700],
+                        ),
+                      ),
                     if (vendor != null && vendor.isNotEmpty)
                       Text(
                         vendor,
@@ -318,5 +371,88 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
         );
       },
     );
+  }
+
+  IconData _iconForDevice(Map<String, dynamic> device) {
+    final isGateway = device['is_gateway'] == true;
+    if (isGateway) {
+      return Icons.router;
+    }
+    final vendorRaw = device['vendor'];
+    final vendor = vendorRaw?.toString().toLowerCase() ?? '';
+
+    if (vendor.contains('apple') || vendor.contains('iphone')) {
+      return Icons.phone_iphone;
+    }
+    if (vendor.contains('samsung') ||
+        vendor.contains('xiaomi') ||
+        vendor.contains('oppo') ||
+        vendor.contains('vivo') ||
+        vendor.contains('realme') ||
+        vendor.contains('huawei')) {
+      return Icons.smartphone;
+    }
+    if (vendor.contains('asus') ||
+        vendor.contains('acer') ||
+        vendor.contains('lenovo') ||
+        vendor.contains('dell') ||
+        vendor.contains('hp') ||
+        vendor.contains('msi')) {
+      return Icons.laptop;
+    }
+
+    return Icons.devices_other;
+  }
+
+  String _titleForDevice({
+    required String ip,
+    required String? hostname,
+    required bool isGateway,
+  }) {
+    final hasHostname = hostname != null && hostname.isNotEmpty;
+    if (isGateway) {
+      if (hasHostname) {
+        return '$hostname ($ip)';
+      }
+      return 'Router WiFi ($ip)';
+    }
+
+    if (hasHostname) {
+      return hostname!;
+    }
+
+    return ip;
+  }
+
+  String _labelForDevice(Map<String, dynamic> device) {
+    final isGateway = device['is_gateway'] == true;
+    if (isGateway) {
+      return 'Perangkat ini adalah router utama jaringan Anda.';
+    }
+
+    final vendorRaw = device['vendor'];
+    final vendor = vendorRaw?.toString().toLowerCase() ?? '';
+
+    if (vendor.contains('apple') || vendor.contains('iphone')) {
+      return 'Kemungkinan ponsel atau perangkat Apple.';
+    }
+    if (vendor.contains('samsung') ||
+        vendor.contains('xiaomi') ||
+        vendor.contains('oppo') ||
+        vendor.contains('vivo') ||
+        vendor.contains('realme') ||
+        vendor.contains('huawei')) {
+      return 'Kemungkinan ponsel Android.';
+    }
+    if (vendor.contains('asus') ||
+        vendor.contains('acer') ||
+        vendor.contains('lenovo') ||
+        vendor.contains('dell') ||
+        vendor.contains('hp') ||
+        vendor.contains('msi')) {
+      return 'Kemungkinan laptop atau komputer.';
+    }
+
+    return 'Jenis perangkat tidak diketahui.';
   }
 }

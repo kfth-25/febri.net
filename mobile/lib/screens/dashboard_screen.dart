@@ -204,8 +204,10 @@ class DashboardScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Wrap(
+                    alignment: WrapAlignment.start,
+                    spacing: 16,
+                    runSpacing: 16,
                     children: [
                       _buildQuickAction(
                         context,
