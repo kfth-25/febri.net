@@ -13,14 +13,14 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Check if admin already exists to avoid duplicates
-        if (!User::where('email', 'admin@wifi.net')->exists()) {
-            User::create([
+        User::updateOrCreate(
+            ['email' => 'admin@wifi.net'],
+            [
                 'name' => 'Administrator',
-                'email' => 'admin@wifi.net',
                 'password' => Hash::make('password123'),
-                // Add any other required fields here based on your migration
-            ]);
-        }
+                'role' => 'admin',
+                'status' => 'active',
+            ]
+        );
     }
 }
