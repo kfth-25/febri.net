@@ -10,8 +10,13 @@ class NetworkScannerService
 {
     public function runArpScan(): array
     {
+        $devices = $this->runPythonScan();
+        if (!empty($devices)) {
+            return $devices;
+        }
+
         $os = PHP_OS_FAMILY;
-        $devices = [];
+        $fallback = [];
 
         try {
             if ($os === 'Windows') {
@@ -22,16 +27,73 @@ class NetworkScannerService
                     $output = implode("\n", $lines);
                 }
 
-                $devices = $this->parseArpWindows($output ?? '');
+                $fallback = $this->parseArpWindows($output ?? '');
             } else {
                 $output = shell_exec('arp -a 2>/dev/null');
-                $devices = $this->parseArpLinux($output ?? '');
+                $fallback = $this->parseArpLinux($output ?? '');
             }
         } catch (\Exception $e) {
-            Log::error('ARP scan failed: ' . $e->getMessage());
+            Log::error('ARP scan fallback failed: ' . $e->getMessage());
         }
 
-        return $devices;
+        return $fallback;
+    }
+
+    private function runPythonScan(): array
+    {
+        try {
+            $python = env('PYTHON_PATH', 'python');
+            $script = base_path('scan_wifi.py');
+            if (!is_file($script)) {
+                return [];
+            }
+
+            $subnet = env('WIFI_SCANNER_SUBNET');
+            $command = $python . ' ' . escapeshellarg($script);
+            if (!empty($subnet)) {
+                $command .= ' ' . escapeshellarg($subnet);
+            }
+
+            $output = shell_exec($command);
+            if (empty($output)) {
+                return [];
+            }
+
+            $data = json_decode($output, true);
+            if (!is_array($data)) {
+                return [];
+            }
+
+            $devices = $data['devices'] ?? [];
+            if (!is_array($devices)) {
+                return [];
+            }
+
+            $normalized = [];
+            foreach ($devices as $device) {
+                if (!is_array($device)) {
+                    continue;
+                }
+                $ip = $device['ip_address'] ?? null;
+                $mac = $device['mac_address'] ?? null;
+                $hostname = $device['hostname'] ?? null;
+
+                if (!$ip) {
+                    continue;
+                }
+
+                $normalized[] = [
+                    'ip_address' => $ip,
+                    'mac_address' => $mac ? strtoupper($mac) : null,
+                    'hostname' => $hostname ?: null,
+                ];
+            }
+
+            return $normalized;
+        } catch (\Throwable $e) {
+            Log::error('Python WiFi scan failed: ' . $e->getMessage());
+            return [];
+        }
     }
 
     private function parseArpLinux(string $output): array
