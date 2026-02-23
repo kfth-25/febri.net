@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
 
 import '../utils/app_theme.dart';
 import '../providers/auth_provider.dart';
@@ -22,6 +23,7 @@ class InstallationStatusScreen extends StatefulWidget {
 
 class _InstallationStatusScreenState extends State<InstallationStatusScreen> {
   Map<String, dynamic>? _request;
+  Map<String, dynamic>? _activeSubscription;
   bool _loading = true;
 
   @override
@@ -106,6 +108,37 @@ class _InstallationStatusScreenState extends State<InstallationStatusScreen> {
         _loading = false;
       });
     }
+
+    await _loadActiveSubscription();
+  }
+
+  Future<void> _loadActiveSubscription() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final token = auth.token;
+    if (token == null) return;
+
+    try {
+      final uri = Uri.parse('${AuthProvider.baseUrl}/subscriptions?status=active');
+      final response = await http.get(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) {
+          final list = decoded.whereType<Map<String, dynamic>>().toList();
+          if (list.isNotEmpty && mounted) {
+            setState(() {
+              _activeSubscription = list.first;
+            });
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   @override
@@ -124,9 +157,187 @@ class _InstallationStatusScreenState extends State<InstallationStatusScreen> {
           ? const Center(
               child: CircularProgressIndicator(),
             )
-          : _request == null
-              ? _buildEmptyState(context)
-              : _buildContent(context),
+          : _activeSubscription != null
+              ? _buildActiveInstalledState(context)
+              : _request == null
+                  ? _buildEmptyState(context)
+                  : _buildContent(context),
+    );
+  }
+
+  Widget _buildActiveInstalledState(BuildContext context) {
+    final subscription = _activeSubscription!;
+    final package = subscription['wifi_package'] as Map<String, dynamic>?;
+
+    final packageName = package?['name']?.toString() ?? '-';
+    final speed = package?['speed']?.toString();
+    final address = subscription['installation_address']?.toString() ?? '-';
+
+    DateTime? activatedAt;
+    final activatedRaw = subscription['activated_at']?.toString();
+    if (activatedRaw != null && activatedRaw.isNotEmpty) {
+      try {
+        activatedAt = DateTime.parse(activatedRaw);
+      } catch (_) {
+        activatedAt = null;
+      }
+    }
+
+    final activatedLabel = activatedAt != null
+        ? '${activatedAt.day} ${_monthLabel(activatedAt.month)} ${activatedAt.year}'
+        : '-';
+
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        24,
+        24,
+        24 + bottomInset + 16,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Pemasangan Selesai',
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.primaryColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Akun ini sudah memiliki pemasangan WiFi yang aktif. Detail ringkasan pemasangan dapat Anda lihat di bawah.',
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: Colors.grey[700],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Ringkasan Pemasangan',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE0F7E9),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF16A34A),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Layanan Aktif',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF166534),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildSummaryRow(
+                  icon: Icons.wifi,
+                  label: 'Paket Internet',
+                  value: speed != null && speed.isNotEmpty
+                      ? '$packageName • $speed'
+                      : packageName,
+                ),
+                const SizedBox(height: 4),
+                _buildSummaryRow(
+                  icon: Icons.location_on_outlined,
+                  label: 'Alamat Pemasangan',
+                  value: address,
+                ),
+                const SizedBox(height: 4),
+                _buildSummaryRow(
+                  icon: Icons.calendar_today_outlined,
+                  label: 'Aktif Sejak',
+                  value: activatedLabel,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: AppTheme.primaryColor,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Jika Anda ingin memindahkan lokasi pemasangan atau melakukan perubahan layanan, silakan hubungi admin atau gunakan menu Bantuan.',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

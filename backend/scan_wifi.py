@@ -42,24 +42,26 @@ def resolve_hostname(ip: str) -> str | None:
         return None
 
 
-def scan(subnet: str) -> list[dict]:
+def scan(subnet: str, attempts: int = 3, timeout: int = 4) -> list[dict]:
+    devices_by_mac: dict[str, dict] = {}
+
     arp = ARP(pdst=subnet)
     ether = Ether(dst="ff:ff:ff:ff:ff:ff")
-    answered = srp(ether / arp, timeout=3, verbose=False)[0]
 
-    devices: list[dict] = []
-    for _, received in answered:
-        ip = received.psrc
-        mac = received.hwsrc.upper()
-        hostname = resolve_hostname(ip)
-        devices.append(
-            {
+    for _ in range(attempts):
+        answered = srp(ether / arp, timeout=timeout, verbose=False)[0]
+
+        for _, received in answered:
+            ip = received.psrc
+            mac = received.hwsrc.upper()
+            hostname = resolve_hostname(ip)
+            devices_by_mac[mac] = {
                 "ip_address": ip,
                 "mac_address": mac,
                 "hostname": hostname,
             }
-        )
-    return devices
+
+    return list(devices_by_mac.values())
 
 
 def main() -> None:
@@ -94,4 +96,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
