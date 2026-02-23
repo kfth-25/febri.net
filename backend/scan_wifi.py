@@ -42,7 +42,7 @@ def resolve_hostname(ip: str) -> str | None:
         return None
 
 
-def scan(subnet: str, attempts: int = 3, timeout: int = 4) -> list[dict]:
+def scan(subnet: str, attempts: int = 4, timeout: int = 5) -> list[dict]:
     devices_by_mac: dict[str, dict] = {}
 
     arp = ARP(pdst=subnet)
@@ -61,7 +61,20 @@ def scan(subnet: str, attempts: int = 3, timeout: int = 4) -> list[dict]:
                 "hostname": hostname,
             }
 
-    return list(devices_by_mac.values())
+    devices = list(devices_by_mac.values())
+
+    def ip_key(item: dict) -> tuple[int, int, int, int]:
+        ip = item.get("ip_address", "")
+        parts = ip.split(".")
+        if len(parts) != 4:
+            return (999, 999, 999, 999)
+        try:
+            return tuple(int(p) for p in parts)  # type: ignore[arg-type]
+        except ValueError:
+            return (999, 999, 999, 999)
+
+    devices.sort(key=ip_key)
+    return devices
 
 
 def main() -> None:
