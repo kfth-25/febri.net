@@ -7,6 +7,7 @@ use App\Http\Controllers\WifiPackageController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\NetworkScanController;
+use App\Http\Controllers\VoucherTransactionController;
 
 // Public Routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -49,6 +50,10 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Subscription Routes
     Route::apiResource('subscriptions', SubscriptionController::class);
+
+    // Voucher Transactions
+    Route::get('/voucher-transactions', [VoucherTransactionController::class, 'index']);
+    Route::post('/voucher-transactions', [VoucherTransactionController::class, 'store']);
 
     // Issue Routes
     Route::apiResource('issues', \App\Http\Controllers\IssueController::class);

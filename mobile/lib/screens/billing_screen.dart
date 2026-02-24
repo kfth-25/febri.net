@@ -3,8 +3,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 
 import '../utils/app_theme.dart';
+import '../providers/auth_provider.dart';
 
 class BillingScreen extends StatefulWidget {
   const BillingScreen({super.key});
@@ -32,23 +35,62 @@ class _BillingScreenState extends State<BillingScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
 
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final currentUser = auth.user;
+      dynamic currentUserIdRaw = currentUser?['id'];
+      int? currentUserId;
+      if (currentUserIdRaw is int) {
+        currentUserId = currentUserIdRaw;
+      } else if (currentUserIdRaw != null) {
+        currentUserId = int.tryParse(currentUserIdRaw.toString());
+      }
+      final String? currentUserEmail =
+          currentUser?['email']?.toString();
+
       final unpaidRaw = prefs.getString('unpaid_bill');
+      Map<String, dynamic>? candidateBill;
       if (unpaidRaw != null && unpaidRaw.isNotEmpty) {
         try {
           final decoded = jsonDecode(unpaidRaw);
           if (decoded is Map) {
-            _unpaidBill = decoded
+            final bill = decoded
                 .map((key, value) => MapEntry(key.toString(), value));
+
+            if (currentUserId == null && currentUserEmail == null) {
+              candidateBill = bill;
+            } else {
+              final billUserIdRaw = bill['user_id'];
+              int? billUserId;
+              if (billUserIdRaw is int) {
+                billUserId = billUserIdRaw;
+              } else if (billUserIdRaw != null) {
+                billUserId = int.tryParse(billUserIdRaw.toString());
+              }
+              final String? billUserEmail =
+                  bill['user_email']?.toString();
+
+              final matchById = currentUserId != null &&
+                  billUserId != null &&
+                  currentUserId == billUserId;
+              final matchByEmail = currentUserEmail != null &&
+                  billUserEmail != null &&
+                  currentUserEmail == billUserEmail;
+
+              if (matchById || matchByEmail) {
+                candidateBill = bill;
+              }
+            }
           }
         } catch (_) {}
       }
 
       final historyRaw = prefs.getString('billing_history');
+      List<Map<String, dynamic>> history = [];
       if (historyRaw != null && historyRaw.isNotEmpty) {
         try {
           final decoded = jsonDecode(historyRaw);
           if (decoded is List) {
-            _history = decoded
+            history = decoded
                 .whereType<Map>()
                 .map((e) =>
                     e.map((key, value) => MapEntry(key.toString(), value)))
@@ -56,6 +98,32 @@ class _BillingScreenState extends State<BillingScreen> {
           }
         } catch (_) {}
       }
+
+      if (currentUserId != null || currentUserEmail != null) {
+        history = history.where((item) {
+          final rawId = item['user_id'];
+          int? itemUserId;
+          if (rawId is int) {
+            itemUserId = rawId;
+          } else if (rawId != null) {
+            itemUserId = int.tryParse(rawId.toString());
+          }
+          final String? itemEmail =
+              item['user_email']?.toString();
+
+          final matchById = currentUserId != null &&
+              itemUserId != null &&
+              currentUserId == itemUserId;
+          final matchByEmail = currentUserEmail != null &&
+              itemEmail != null &&
+              currentUserEmail == itemEmail;
+
+          return matchById || matchByEmail;
+        }).toList();
+      }
+
+      _unpaidBill = candidateBill;
+      _history = history;
     } finally {
       if (mounted) {
         setState(() {
@@ -80,6 +148,8 @@ class _BillingScreenState extends State<BillingScreen> {
       'amount': bill['amount'],
       'status': 'Lunas',
       'details': bill['details']?.toString() ?? '',
+      'user_id': bill['user_id'],
+      'user_email': bill['user_email'],
     };
 
     final prefs = await SharedPreferences.getInstance();
@@ -87,6 +157,37 @@ class _BillingScreenState extends State<BillingScreen> {
     final List<Map<String, dynamic>> newHistory = [historyItem, ..._history];
     await prefs.setString('billing_history', jsonEncode(newHistory));
     await prefs.remove('unpaid_bill');
+
+    // Setelah pembayaran, kirim transaksi voucher ke backend (jika ada info paket)
+    try {
+      final wifiPackageIdRaw = bill['wifi_package_id'];
+      int? wifiPackageId;
+      if (wifiPackageIdRaw is int) {
+        wifiPackageId = wifiPackageIdRaw;
+      } else if (wifiPackageIdRaw != null) {
+        wifiPackageId = int.tryParse(wifiPackageIdRaw.toString());
+      }
+
+      if (wifiPackageId != null) {
+        final auth = Provider.of<AuthProvider>(context, listen: false);
+        final token = auth.token;
+        if (token != null) {
+          final uri = Uri.parse(
+              '${AuthProvider.baseUrl}/voucher-transactions');
+          await http.post(
+            uri,
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({
+              'wifi_package_id': wifiPackageId,
+            }),
+          );
+        }
+      }
+    } catch (_) {}
 
     if (!mounted) return;
 

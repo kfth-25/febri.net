@@ -11,7 +11,9 @@ import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 
 class InstallationScreen extends StatefulWidget {
-  const InstallationScreen({super.key});
+  final String? preselectedPackageId;
+
+  const InstallationScreen({super.key, this.preselectedPackageId});
 
   @override
   State<InstallationScreen> createState() => _InstallationScreenState();
@@ -37,8 +39,30 @@ class _InstallationScreenState extends State<InstallationScreen> {
   bool _checkingSubscription = false;
 
   final List<Map<String, dynamic>> _packages = [
-    {'id': '1', 'name': 'Starter Home', 'speed': '20 Mbps', 'price': 250000},
-    {'id': '2', 'name': 'Family Entertainment', 'speed': '50 Mbps', 'price': 350000},
+    {
+      'id': '1',
+      'name': 'Starter Home',
+      'speed': '20 Mbps',
+      'price': 250000,
+    },
+    {
+      'id': '2',
+      'name': 'Family Entertainment',
+      'speed': '50 Mbps',
+      'price': 350000,
+    },
+    {
+      'id': '3',
+      'name': 'Gamer & Creator',
+      'speed': '100 Mbps',
+      'price': 550000,
+    },
+    {
+      'id': '4',
+      'name': 'Ultra Speed',
+      'speed': '200 Mbps',
+      'price': 850000,
+    },
   ];
 
   @override
@@ -57,6 +81,7 @@ class _InstallationScreenState extends State<InstallationScreen> {
     super.initState();
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted);
+    _selectedPackageId = widget.preselectedPackageId;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkActiveSubscription();
     });
@@ -137,7 +162,7 @@ class _InstallationScreenState extends State<InstallationScreen> {
 
     if (_selectedPackageId == null) {
       setState(() {
-        _error = 'Silakan pilih paket WiFi terlebih dahulu.';
+        _error = 'Silakan pilih voucher WiFi terlebih dahulu.';
       });
       return;
     }
@@ -202,8 +227,11 @@ class _InstallationScreenState extends State<InstallationScreen> {
         'month': monthLabel,
         'dueDate': dueLabel,
         'amount': selectedPackage['price'],
+        'wifi_package_id': selectedPackage['id'],
         'status': 'Belum Bayar',
         'details': selectedPackage['name'],
+        'user_id': user?['id'],
+        'user_email': user?['email'],
       };
 
       await prefs.setString('unpaid_bill', jsonEncode(unpaidBill));
@@ -487,7 +515,7 @@ class _InstallationScreenState extends State<InstallationScreen> {
                       ),
                     const SizedBox(height: 12),
                     Text(
-                      'Paket WiFi',
+                      'Voucher WiFi',
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -498,7 +526,7 @@ class _InstallationScreenState extends State<InstallationScreen> {
                     DropdownButtonFormField<String>(
                       value: _selectedPackageId,
                       decoration: const InputDecoration(
-                        labelText: 'Pilih paket',
+                        labelText: 'Pilih voucher',
                       ),
                       items: _packages
                           .map(

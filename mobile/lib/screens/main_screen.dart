@@ -54,7 +54,7 @@ class _MainScreenState extends State<MainScreen> {
             NavigationDestination(
               icon: Icon(Icons.wifi),
               selectedIcon: Icon(Icons.wifi, color: AppTheme.primaryColor),
-              label: 'Paket',
+              label: 'Voucher',
             ),
             NavigationDestination(
               icon: Icon(Icons.receipt_long_outlined),

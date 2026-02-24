@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:http/http.dart' as http;
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 import 'speed_test_screen.dart';
@@ -11,13 +14,170 @@ import 'profile_screen.dart';
 import 'installation_screen.dart';
 import 'installation_status_screen.dart';
 import 'wifi_scanner_screen.dart';
+import 'nearby_wifi_screen.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  Map<String, dynamic>? _activeSubscription;
+  Map<String, dynamic>? _voucherSummary;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadActiveSubscription();
+      _loadVoucherSummary();
+    });
+  }
+
+  Future<void> _loadActiveSubscription() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final token = auth.token;
+    if (token == null) return;
+
+    try {
+      final uri =
+          Uri.parse('${AuthProvider.baseUrl}/subscriptions?status=active');
+      final response = await http.get(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) {
+          final list = decoded.whereType<Map<String, dynamic>>().toList();
+          if (list.isNotEmpty && mounted) {
+            setState(() {
+              _activeSubscription = list.first;
+            });
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadVoucherSummary() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final token = auth.token;
+    if (token == null) return;
+
+    try {
+      final uri = Uri.parse(
+          '${AuthProvider.baseUrl}/voucher-transactions?summary=1');
+      final response = await http.get(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic> && mounted) {
+          setState(() {
+            _voucherSummary = decoded;
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final user =Provider.of<AuthProvider>(context).user;
+    final user = Provider.of<AuthProvider>(context).user;
+
+    String packageName = 'Family Entertainment';
+    String speedLabel = '50 Mbps';
+    String expiresLabel = '-';
+    String remainingLabel = '-';
+
+    final subscription = _activeSubscription;
+    final voucherSummary = _voucherSummary;
+    if (subscription != null) {
+      final package = subscription['wifi_package'] as Map<String, dynamic>?;
+      final name = package?['name']?.toString();
+      final speed = package?['speed']?.toString();
+
+      if (name != null && name.isNotEmpty) {
+        packageName = name;
+      }
+      if (speed != null && speed.isNotEmpty) {
+        speedLabel = speed;
+      }
+
+      DateTime? activatedAt;
+      final activatedRaw = subscription['activated_at']?.toString();
+      if (activatedRaw != null && activatedRaw.isNotEmpty) {
+        try {
+          activatedAt = DateTime.parse(activatedRaw);
+        } catch (_) {
+          activatedAt = null;
+        }
+      }
+
+      DateTime? expiresAt;
+      final expiresRaw = subscription['expires_at']?.toString() ??
+          subscription['expired_at']?.toString();
+      if (expiresRaw != null && expiresRaw.isNotEmpty) {
+        try {
+          expiresAt = DateTime.parse(expiresRaw);
+        } catch (_) {
+          expiresAt = null;
+        }
+      } else if (activatedAt != null) {
+        expiresAt = activatedAt.add(const Duration(days: 30));
+      }
+
+      if (expiresAt != null) {
+        expiresLabel =
+            '${expiresAt.day} ${_monthLabel(expiresAt.month)} ${expiresAt.year}';
+
+        final diff = expiresAt.difference(DateTime.now()).inDays;
+        if (diff > 0) {
+          remainingLabel = 'Sisa ± $diff hari';
+        } else if (diff == 0) {
+          remainingLabel = 'Berakhir hari ini';
+        } else {
+          remainingLabel = 'Melebihi masa aktif';
+        }
+      }
+    }
+
+    int? totalVoucherTransactions;
+    int? currentVoucherUsedCount;
+
+    if (voucherSummary != null) {
+      final total = voucherSummary['total_transactions'];
+      if (total is int) {
+        totalVoucherTransactions = total;
+      }
+
+      final currentPackageId =
+          (subscription?['wifi_package'] as Map<String, dynamic>?)?['id'];
+
+      final packages = voucherSummary['packages'];
+      if (currentPackageId != null && packages is List) {
+        for (final item in packages) {
+          if (item is Map &&
+              item['wifi_package_id'] == currentPackageId &&
+              item['count'] is int) {
+            currentVoucherUsedCount = item['count'] as int;
+            break;
+          }
+        }
+      }
+    }
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -113,7 +273,11 @@ class DashboardScreen extends StatelessWidget {
                             color: Colors.white.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.rocket_launch, color: Colors.white, size: 32),
+                          child: const Icon(
+                            Icons.rocket_launch,
+                            color: Colors.white,
+                            size: 32,
+                          ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -121,15 +285,16 @@ class DashboardScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Paket Aktif',
+                                'Voucher Aktif',
                                 style: GoogleFonts.poppins(
-                                  color: AppTheme.primaryColor.withOpacity(0.7),
+                                  color:
+                                      AppTheme.primaryColor.withOpacity(0.7),
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                               Text(
-                                'Family Entertainment',
+                                packageName,
                                 style: GoogleFonts.poppins(
                                   color: AppTheme.primaryColor,
                                   fontSize: 16,
@@ -137,13 +302,64 @@ class DashboardScreen extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                '50 Mbps',
+                                speedLabel,
                                 style: GoogleFonts.poppins(
                                   color: AppTheme.primaryColor,
                                   fontSize: 24,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      expiresLabel == '-'
+                                          ? 'Masa aktif belum tersedia'
+                                          : 'Berlaku hingga $expiresLabel',
+                                      style: GoogleFonts.poppins(
+                                        color: AppTheme.primaryColor,
+                                        fontSize: 11,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              if (remainingLabel != '-')
+                                Text(
+                                  remainingLabel,
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              if (totalVoucherTransactions != null &&
+                                  totalVoucherTransactions > 0) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  currentVoucherUsedCount != null &&
+                                          currentVoucherUsedCount > 0
+                                      ? 'Voucher ini sudah dipilih ${currentVoucherUsedCount}x'
+                                      : 'Belum ada transaksi untuk voucher ini',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                if (totalVoucherTransactions >
+                                    (currentVoucherUsedCount ?? 0))
+                                  Text(
+                                    'Total semua voucher: ${totalVoucherTransactions} transaksi',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white70,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                              ],
                             ],
                           ),
                         ),
@@ -267,6 +483,18 @@ class DashboardScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (_) => const WifiScannerScreen(),
+                          ),
+                        ),
+                      ),
+                      _buildQuickAction(
+                        context,
+                        Icons.wifi_find,
+                        'Spot WiFi',
+                        Colors.red,
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const NearbyWifiScreen(),
                           ),
                         ),
                       ),
@@ -416,7 +644,8 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickAction(BuildContext context, IconData icon, String label, Color color, VoidCallback onTap) {
+  Widget _buildQuickAction(
+      BuildContext context, IconData icon, String label, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -448,5 +677,25 @@ class DashboardScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _monthLabel(int month) {
+    const names = [
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
+    if (month < 1 || month > 12) return '';
+    return names[month];
   }
 }

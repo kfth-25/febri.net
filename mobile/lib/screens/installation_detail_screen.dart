@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../utils/app_theme.dart';
+import 'technician_selection_screen.dart';
 
 class InstallationDetailScreen extends StatelessWidget {
   final Map<String, dynamic> request;
@@ -33,6 +34,8 @@ class InstallationDetailScreen extends StatelessWidget {
     final status = request['status']?.toString() ?? 'pending';
     final mapLink = request['map_link']?.toString();
     final photoPath = request['photo_path']?.toString();
+    final canChooseTechnician =
+        status == 'pending' || status == 'scheduled' || status == 'installing';
 
     return Scaffold(
       appBar: AppBar(
@@ -64,7 +67,7 @@ class InstallationDetailScreen extends StatelessWidget {
                 _buildRow('Nomor Permohonan', '#${request['id']}'),
                 _buildRow(
                     'Status', _statusLabel(status), valueColor: Colors.orange),
-                _buildRow('Paket', request['name']?.toString() ?? '-'),
+                _buildRow('Voucher', request['name']?.toString() ?? '-'),
                 _buildRow('Alamat',
                     request['address']?.toString() ?? '-', multiLine: true),
                 _buildRow('Jadwal Preferensi',
@@ -146,10 +149,63 @@ class InstallationDetailScreen extends StatelessWidget {
                 ],
               ),
             ],
+            if (canChooseTechnician) ...[
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => _openTechnicianSelection(context),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: const Icon(Icons.engineering_outlined),
+                  label: Text(
+                    'Pilih Teknisi',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _openTechnicianSelection(BuildContext context) async {
+    final selected = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TechnicianSelectionScreen(
+          request: request,
+        ),
+      ),
+    );
+
+    if (selected != null) {
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      if (messenger != null) {
+        final name = selected['name']?.toString() ?? '';
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              name.isNotEmpty
+                  ? 'Teknisi $name telah dipilih sebagai preferensi Anda.'
+                  : 'Teknisi berhasil dipilih sebagai preferensi Anda.',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: AppTheme.primaryColor,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildSectionCard({
@@ -268,4 +324,3 @@ class InstallationDetailScreen extends StatelessWidget {
     return names[month];
   }
 }
-

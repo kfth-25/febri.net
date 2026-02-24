@@ -187,6 +187,35 @@ class _InstallationStatusScreenState extends State<InstallationStatusScreen> {
         ? '${activatedAt.day} ${_monthLabel(activatedAt.month)} ${activatedAt.year}'
         : '-';
 
+    DateTime? expiresAt;
+    final expiresRaw = subscription['expires_at']?.toString() ??
+        subscription['expired_at']?.toString();
+    if (expiresRaw != null && expiresRaw.isNotEmpty) {
+      try {
+        expiresAt = DateTime.parse(expiresRaw);
+      } catch (_) {
+        expiresAt = null;
+      }
+    } else if (activatedAt != null) {
+      expiresAt = activatedAt.add(const Duration(days: 30));
+    }
+
+    final expiresLabel = expiresAt != null
+        ? '${expiresAt.day} ${_monthLabel(expiresAt.month)} ${expiresAt.year}'
+        : '-';
+
+    String remainingLabel = '-';
+    if (expiresAt != null) {
+      final diff = expiresAt.difference(DateTime.now()).inDays;
+      if (diff > 0) {
+        remainingLabel = '± $diff hari lagi';
+      } else if (diff == 0) {
+        remainingLabel = 'Berakhir hari ini';
+      } else {
+        remainingLabel = 'Melebihi masa aktif';
+      }
+    }
+
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
     return SingleChildScrollView(
@@ -280,7 +309,7 @@ class _InstallationStatusScreenState extends State<InstallationStatusScreen> {
                 const SizedBox(height: 12),
                 _buildSummaryRow(
                   icon: Icons.wifi,
-                  label: 'Paket Internet',
+                  label: 'Voucher Internet',
                   value: speed != null && speed.isNotEmpty
                       ? '$packageName • $speed'
                       : packageName,
@@ -296,6 +325,18 @@ class _InstallationStatusScreenState extends State<InstallationStatusScreen> {
                   icon: Icons.calendar_today_outlined,
                   label: 'Aktif Sejak',
                   value: activatedLabel,
+                ),
+                const SizedBox(height: 4),
+                _buildSummaryRow(
+                  icon: Icons.event_available_outlined,
+                  label: 'Berlaku Hingga',
+                  value: expiresLabel,
+                ),
+                const SizedBox(height: 4),
+                _buildSummaryRow(
+                  icon: Icons.timer_outlined,
+                  label: 'Sisa Masa Aktif',
+                  value: remainingLabel,
                 ),
               ],
             ),
@@ -586,7 +627,7 @@ class _InstallationStatusScreenState extends State<InstallationStatusScreen> {
                 const SizedBox(height: 8),
                 _buildSummaryRow(
                   icon: Icons.wifi,
-                  label: 'Paket',
+                  label: 'Voucher',
                   value: packageName.isEmpty ? '-' : packageName,
                 ),
                 const SizedBox(height: 4),

@@ -42,7 +42,7 @@ def resolve_hostname(ip: str) -> str | None:
         return None
 
 
-def scan(subnet: str, attempts: int = 4, timeout: int = 5) -> list[dict]:
+def scan(subnet: str, attempts: int = 2, timeout: int = 2) -> list[dict]:
     devices_by_mac: dict[str, dict] = {}
 
     arp = ARP(pdst=subnet)

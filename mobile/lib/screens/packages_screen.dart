@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../utils/app_theme.dart';
+import 'installation_screen.dart';
 
 class PackagesScreen extends StatelessWidget {
   const PackagesScreen({super.key});
@@ -10,35 +11,55 @@ class PackagesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final packages = [
       {
-        'id': 1,
+        'id': '1',
         'name': 'Starter Home',
         'speed': '20 Mbps',
         'price': 250000,
-        'features': ['1-3 Perangkat', 'Browsing & Social Media', 'Streaming HD 720p', 'Support 24/7'],
+        'features': [
+          '1-3 Perangkat',
+          'Browsing & Social Media',
+          'Streaming HD 720p',
+          'Support 24/7'
+        ],
         'recommended': false,
       },
       {
-        'id': 2,
+        'id': '2',
         'name': 'Family Entertainment',
         'speed': '50 Mbps',
         'price': 350000,
-        'features': ['4-7 Perangkat', 'Streaming 4K UHD', 'Zoom Meeting Lancar', 'Game Online Stabil'],
+        'features': [
+          '4-7 Perangkat',
+          'Streaming 4K UHD',
+          'Zoom Meeting Lancar',
+          'Game Online Stabil'
+        ],
         'recommended': true,
       },
       {
-        'id': 3,
+        'id': '3',
         'name': 'Gamer & Creator',
         'speed': '100 Mbps',
         'price': 550000,
-        'features': ['8-12 Perangkat', 'Upload Cepat (Simetris)', 'Low Latency Gaming', 'Live Streaming'],
+        'features': [
+          '8-12 Perangkat',
+          'Upload Cepat (Simetris)',
+          'Low Latency Gaming',
+          'Live Streaming'
+        ],
         'recommended': false,
       },
       {
-        'id': 4,
+        'id': '4',
         'name': 'Ultra Speed',
         'speed': '200 Mbps',
         'price': 850000,
-        'features': ['15+ Perangkat', 'Smart Home Ready', 'Server Hosting Personal', 'Prioritas Support VIP'],
+        'features': [
+          '15+ Perangkat',
+          'Smart Home Ready',
+          'Server Hosting Personal',
+          'Prioritas Support VIP'
+        ],
         'recommended': false,
       },
     ];
@@ -46,7 +67,7 @@ class PackagesScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Pilih Paket',
+          'Pilih Voucher',
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
         ),
       ),
@@ -125,13 +146,13 @@ class PackagesScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                  child: Text(
-                                    feature,
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.grey[700],
-                                      fontSize: 14,
-                                    ),
-                                  ),
+                              child: Text(
+                                feature,
+                                style: GoogleFonts.poppins(
+                                  color: Colors.grey[700],
+                                  fontSize: 14,
+                                ),
+                              ),
                                 ),
                               ],
                             ),
@@ -182,14 +203,24 @@ class PackagesScreen extends StatelessWidget {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                final id = pkg['id'] as String;
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => InstallationScreen(
+                                      preselectedPackageId: id,
+                                    ),
+                                  ),
+                                );
+                              },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: isRecommended ? AppTheme.secondaryColor : AppTheme.primaryColor,
                                 foregroundColor: isRecommended ? AppTheme.primaryColor : Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                               ),
                               child: Text(
-                                'Pilih Paket',
+                                'Pilih Voucher',
                                 style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
                               ),
                             ),
