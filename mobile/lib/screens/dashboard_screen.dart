@@ -15,6 +15,7 @@ import 'installation_screen.dart';
 import 'installation_status_screen.dart';
 import 'wifi_scanner_screen.dart';
 import 'nearby_wifi_screen.dart';
+import 'billing_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -495,6 +496,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           context,
                           MaterialPageRoute(
                             builder: (_) => const NearbyWifiScreen(),
+                          ),
+                        ),
+                      ),
+                      _buildQuickAction(
+                        context,
+                        Icons.confirmation_number_outlined,
+                        'Voucher',
+                        Colors.deepPurple,
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const BillingScreen(),
                           ),
                         ),
                       ),

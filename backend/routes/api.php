@@ -46,7 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('users', UserController::class);
 
     // Wifi Package Routes
-    Route::apiResource('packages', WifiPackageController::class);
+    Route::apiResource('packages', WifiPackageController::class)->except(['index', 'show']);
     
     // Subscription Routes
     Route::apiResource('subscriptions', SubscriptionController::class);

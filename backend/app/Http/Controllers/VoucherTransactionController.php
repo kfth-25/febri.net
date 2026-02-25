@@ -6,6 +6,7 @@ use App\Models\VoucherTransaction;
 use App\Models\WifiPackage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class VoucherTransactionController extends Controller
 {
@@ -64,6 +65,7 @@ class VoucherTransactionController extends Controller
             'user_id' => $user->id,
             'wifi_package_id' => $validated['wifi_package_id'],
             'amount' => $package?->price,
+            'voucher_code' => strtoupper(Str::random(8)),
         ]);
 
         return response()->json($transaction->load('wifiPackage'), 201);

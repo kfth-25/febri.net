@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
+import '../widgets/loading_scan_animation.dart';
 
 class WifiScannerScreen extends StatefulWidget {
   const WifiScannerScreen({super.key});
@@ -214,19 +215,43 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
   Widget _buildDeviceList() {
     if (_loading && _devices.isEmpty) {
       return const Center(
-        child: CircularProgressIndicator(),
+        child: LoadingScanAnimation(
+          size: 96,
+          label: 'Memindai jaringan...',
+        ),
       );
     }
 
     if (_devices.isEmpty) {
       return Center(
-        child: Text(
-          'Belum ada perangkat terdeteksi.\nPastikan perangkat aktif dan terhubung ke WiFi ini.',
-          textAlign: TextAlign.center,
-          style: GoogleFonts.poppins(
-            fontSize: 13,
-            color: Colors.grey[700],
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 64,
+              color: AppTheme.primaryColor.withOpacity(0.2),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Belum ada perangkat terdeteksi.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Pastikan perangkat aktif dan terhubung\nke WiFi router Anda.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
         ),
       );
     }

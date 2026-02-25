@@ -11,7 +11,8 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('wifi_package_id')->constrained('wifi_packages')->cascadeOnDelete();
-            $table->unsignedBigInteger('amount')->nullable();
+            $table->decimal('amount', 10, 2)->nullable();
+            $table->string('voucher_code')->unique()->nullable();
             $table->timestamps();
         });
     }

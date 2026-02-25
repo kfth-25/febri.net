@@ -1,13 +1,9 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
-
+import 'package:flutter/services.dart';
 import '../utils/app_theme.dart';
-import '../providers/auth_provider.dart';
 
 class BillingScreen extends StatefulWidget {
   const BillingScreen({super.key});
@@ -17,478 +13,220 @@ class BillingScreen extends StatefulWidget {
 }
 
 class _BillingScreenState extends State<BillingScreen> {
-  Map<String, dynamic>? _unpaidBill;
-  List<Map<String, dynamic>> _history = [];
+  List<Map<String, dynamic>> _saved = [];
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadSaved();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadSaved() async {
     setState(() {
       _loading = true;
     });
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      final currentUser = auth.user;
-      dynamic currentUserIdRaw = currentUser?['id'];
-      int? currentUserId;
-      if (currentUserIdRaw is int) {
-        currentUserId = currentUserIdRaw;
-      } else if (currentUserIdRaw != null) {
-        currentUserId = int.tryParse(currentUserIdRaw.toString());
-      }
-      final String? currentUserEmail =
-          currentUser?['email']?.toString();
-
-      final unpaidRaw = prefs.getString('unpaid_bill');
-      Map<String, dynamic>? candidateBill;
-      if (unpaidRaw != null && unpaidRaw.isNotEmpty) {
-        try {
-          final decoded = jsonDecode(unpaidRaw);
-          if (decoded is Map) {
-            final bill = decoded
-                .map((key, value) => MapEntry(key.toString(), value));
-
-            if (currentUserId == null && currentUserEmail == null) {
-              candidateBill = bill;
-            } else {
-              final billUserIdRaw = bill['user_id'];
-              int? billUserId;
-              if (billUserIdRaw is int) {
-                billUserId = billUserIdRaw;
-              } else if (billUserIdRaw != null) {
-                billUserId = int.tryParse(billUserIdRaw.toString());
-              }
-              final String? billUserEmail =
-                  bill['user_email']?.toString();
-
-              final matchById = currentUserId != null &&
-                  billUserId != null &&
-                  currentUserId == billUserId;
-              final matchByEmail = currentUserEmail != null &&
-                  billUserEmail != null &&
-                  currentUserEmail == billUserEmail;
-
-              if (matchById || matchByEmail) {
-                candidateBill = bill;
-              }
-            }
-          }
-        } catch (_) {}
-      }
-
-      final historyRaw = prefs.getString('billing_history');
-      List<Map<String, dynamic>> history = [];
-      if (historyRaw != null && historyRaw.isNotEmpty) {
-        try {
-          final decoded = jsonDecode(historyRaw);
-          if (decoded is List) {
-            history = decoded
-                .whereType<Map>()
-                .map((e) =>
-                    e.map((key, value) => MapEntry(key.toString(), value)))
-                .toList();
-          }
-        } catch (_) {}
-      }
-
-      if (currentUserId != null || currentUserEmail != null) {
-        history = history.where((item) {
-          final rawId = item['user_id'];
-          int? itemUserId;
-          if (rawId is int) {
-            itemUserId = rawId;
-          } else if (rawId != null) {
-            itemUserId = int.tryParse(rawId.toString());
-          }
-          final String? itemEmail =
-              item['user_email']?.toString();
-
-          final matchById = currentUserId != null &&
-              itemUserId != null &&
-              currentUserId == itemUserId;
-          final matchByEmail = currentUserEmail != null &&
-              itemEmail != null &&
-              currentUserEmail == itemEmail;
-
-          return matchById || matchByEmail;
-        }).toList();
-      }
-
-      _unpaidBill = candidateBill;
-      _history = history;
-    } finally {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-      }
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('saved_vouchers');
+    List<Map<String, dynamic>> list = [];
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw) as List<dynamic>;
+        list = decoded.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+      } catch (_) {}
     }
+    setState(() {
+      _saved = list;
+      _loading = false;
+    });
   }
 
-  Future<void> _confirmPayment() async {
-    final bill = _unpaidBill;
-    if (bill == null) return;
-
-    final now = DateTime.now();
-    final paidDate =
-        '${now.day.toString().padLeft(2, '0')} ${_monthName(now.month)} ${now.year}';
-
-    final historyItem = {
-      'id': bill['id'] ?? DateTime.now().millisecondsSinceEpoch,
-      'month': bill['month']?.toString() ?? '',
-      'paidDate': paidDate,
-      'amount': bill['amount'],
-      'status': 'Lunas',
-      'details': bill['details']?.toString() ?? '',
-      'user_id': bill['user_id'],
-      'user_email': bill['user_email'],
-    };
-
+  Future<void> _removeAt(int index) async {
     final prefs = await SharedPreferences.getInstance();
-
-    final List<Map<String, dynamic>> newHistory = [historyItem, ..._history];
-    await prefs.setString('billing_history', jsonEncode(newHistory));
-    await prefs.remove('unpaid_bill');
-
-    // Setelah pembayaran, kirim transaksi voucher ke backend (jika ada info paket)
-    try {
-      final wifiPackageIdRaw = bill['wifi_package_id'];
-      int? wifiPackageId;
-      if (wifiPackageIdRaw is int) {
-        wifiPackageId = wifiPackageIdRaw;
-      } else if (wifiPackageIdRaw != null) {
-        wifiPackageId = int.tryParse(wifiPackageIdRaw.toString());
-      }
-
-      if (wifiPackageId != null) {
-        final auth = Provider.of<AuthProvider>(context, listen: false);
-        final token = auth.token;
-        if (token != null) {
-          final uri = Uri.parse(
-              '${AuthProvider.baseUrl}/voucher-transactions');
-          await http.post(
-            uri,
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
-            body: jsonEncode({
-              'wifi_package_id': wifiPackageId,
-            }),
-          );
-        }
-      }
-    } catch (_) {}
-
-    if (!mounted) return;
-
+    final list = List<Map<String, dynamic>>.from(_saved);
+    list.removeAt(index);
+    await prefs.setString('saved_vouchers', jsonEncode(list));
     setState(() {
-      _unpaidBill = null;
-      _history = newHistory;
+      _saved = list;
     });
-
-    final snackBar = SnackBar(
-      content: Text(
-        'Pembayaran dikonfirmasi. Terima kasih.',
-        style: GoogleFonts.poppins(),
-      ),
-      backgroundColor: AppTheme.primaryColor,
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Voucher dihapus dari tersimpan')),
     );
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Tagihan Saya',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-        ),
+        title: Text('Tagihan', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
       ),
-      backgroundColor: AppTheme.backgroundColor,
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _buildBody(),
-    );
-  }
+      body: RefreshIndicator(
+        onRefresh: _loadSaved,
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _saved.isEmpty
+                ? ListView(
+                    padding: const EdgeInsets.all(24),
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.receipt_long, size: 48, color: AppTheme.primaryColor),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Belum ada Voucher Tersimpan',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Simpan voucher saat pembayaran berhasil untuk muncul di sini.',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.poppins(color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(24),
+                    itemCount: _saved.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 16),
+                    itemBuilder: (context, index) {
+                      final item = _saved[index];
+                      final code = (item['code'] ?? '').toString();
+                      final name = (item['package'] ?? '').toString();
+                      final speed = (item['speed'] ?? '').toString();
+                      final price = item['price'];
+                      final savedAt = (item['saved_at'] ?? '').toString();
+                      String savedLabel = savedAt;
+                      try {
+                        final dt = DateTime.parse(savedAt);
+                        savedLabel = '${dt.day}/${dt.month}/${dt.year} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
+                      } catch (_) {}
 
-  Widget _buildBody() {
-    final hasUnpaid = _unpaidBill != null;
-    final hasHistory = _history.isNotEmpty;
-
-    if (!hasUnpaid && !hasHistory) {
-      return Padding(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.receipt_long_outlined,
-                  size: 56,
-                  color: AppTheme.primaryColor,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Belum Ada Tagihan',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primaryColor.withOpacity(0.06),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Icon(Icons.wifi_rounded, color: AppTheme.primaryColor),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(name.isEmpty ? 'Paket Wi‑Fi' : name,
+                                            style: GoogleFonts.poppins(
+                                              fontWeight: FontWeight.w600,
+                                              color: AppTheme.primaryColor,
+                                            )),
+                                        Text(
+                                          speed.isEmpty ? '-' : speed,
+                                          style: GoogleFonts.poppins(color: AppTheme.secondaryColor),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Text(
+                                    'Rp ${price ?? 0}',
+                                    style: GoogleFonts.poppins(fontWeight: FontWeight.w700, color: AppTheme.primaryColor),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryColor.withOpacity(0.05),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppTheme.primaryColor.withOpacity(0.1)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      code,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 2,
+                                        color: AppTheme.primaryColor,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    IconButton(
+                                      onPressed: () {
+                                        Clipboard.setData(ClipboardData(text: code));
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Kode disalin')),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.copy),
+                                      color: AppTheme.primaryColor,
+                                      tooltip: 'Salin',
+                                    ),
+                                    IconButton(
+                                      onPressed: () => _removeAt(index),
+                                      icon: const Icon(Icons.delete_outline),
+                                      color: Colors.redAccent,
+                                      tooltip: 'Hapus',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Disimpan: $savedLabel', style: GoogleFonts.poppins(color: Colors.grey[600])),
+                                  Text('Voucher', style: GoogleFonts.poppins(color: Colors.grey[600])),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Tagihan akan muncul setelah pemasangan atau langganan paket Anda diproses.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    color: Colors.grey[700],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        if (hasUnpaid) _buildCurrentBillCard(),
-        if (hasUnpaid) const SizedBox(height: 32),
-        Text(
-          'Riwayat Pembayaran',
-          style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.primaryColor,
-          ),
-        ),
-        const SizedBox(height: 16),
-        if (!hasHistory)
-          Text(
-            'Belum ada riwayat pembayaran.',
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              color: Colors.grey[600],
-            ),
-          )
-        else
-          Column(
-            children: _history
-                .map(
-                  (item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _buildHistoryItem(
-                      item['month']?.toString() ?? '',
-                      item['status']?.toString() ?? '',
-                      item['paidDate']?.toString() ?? '',
-                      item['amount'],
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildCurrentBillCard() {
-    final bill = _unpaidBill!;
-    final amount = bill['amount'] is num ? bill['amount'] as num : 0;
-    final amountLabel =
-        'Rp ${amount.toInt().toString().replaceAllMapped(RegExp(r'\\B(?=(\\d{3})+(?!\\d))'), (m) => '.')}';
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppTheme.primaryColor, Color(0xFF1E3A5F)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryColor.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Total Tagihan Bulan Ini',
-            style: GoogleFonts.poppins(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            amountLabel,
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.orange),
-            ),
-            child: Text(
-              'Jatuh Tempo: ${bill['dueDate'] ?? '-'}',
-              style: GoogleFonts.poppins(
-                color: Colors.orange,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _confirmPayment,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.secondaryColor,
-                foregroundColor: AppTheme.primaryColor,
-              ),
-              child: Text(
-                'Konfirmasi Pembayaran',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
-  }
-
-  Widget _buildHistoryItem(
-    String month,
-    String status,
-    String date,
-    dynamic amount,
-  ) {
-    final amountNum = amount is num ? amount : 0;
-    final amountLabel =
-        'Rp ${amountNum.toInt().toString().replaceAllMapped(RegExp(r'\\B(?=(\\d{3})+(?!\\d))'), (m) => '.')}';
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                month,
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryColor,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                date,
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                amountLabel,
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppTheme.primaryColor,
-                ),
-              ),
-            ],
-          ),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              status,
-              style: GoogleFonts.poppins(
-                color: Colors.green,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _monthName(int month) {
-    const names = [
-      '',
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'Mei',
-      'Jun',
-      'Jul',
-      'Agu',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Des',
-    ];
-    if (month < 1 || month > 12) return '';
-    return names[month];
   }
 }

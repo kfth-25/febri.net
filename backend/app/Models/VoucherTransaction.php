@@ -13,6 +13,7 @@ class VoucherTransaction extends Model
         'user_id',
         'wifi_package_id',
         'amount',
+        'voucher_code',
     ];
 
     public function user()
