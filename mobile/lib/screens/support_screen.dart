@@ -10,7 +10,8 @@ import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 
 class SupportScreen extends StatefulWidget {
-  const SupportScreen({super.key});
+  final int? initialIssueId;
+  const SupportScreen({super.key, this.initialIssueId});
 
   @override
   State<SupportScreen> createState() => _SupportScreenState();
@@ -121,6 +122,29 @@ class _SupportScreenState extends State<SupportScreen> {
         _issues = raw
             .whereType<Map<String, dynamic>>()
             .toList();
+        final initialId = widget.initialIssueId;
+        if (initialId != null) {
+          final found = _issues.firstWhere(
+            (e) => e is Map<String, dynamic> && e['id'] == initialId,
+            orElse: () => {},
+          );
+          if (found is Map<String, dynamic>) {
+            _showIssueDetail(found);
+          } else {
+            try {
+              final messenger = ScaffoldMessenger.of(context);
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Laporan gangguan #$initialId tidak ditemukan',
+                    style: GoogleFonts.poppins(),
+                  ),
+                  backgroundColor: AppTheme.primaryColor,
+                ),
+              );
+            } catch (_) {}
+          }
+        }
       }
     } catch (_) {
       setState(() {
@@ -477,6 +501,7 @@ class _SupportScreenState extends State<SupportScreen> {
                     description: issue['description']?.toString() ?? '',
                     priority: priority,
                     status: status,
+                    onTap: () => _showIssueDetail(issue),
                   );
                 }).toList(),
               ),
@@ -595,6 +620,7 @@ class _SupportScreenState extends State<SupportScreen> {
     required String description,
     required String priority,
     required String status,
+    VoidCallback? onTap,
   }) {
     Color priorityColor;
     String priorityLabel;
@@ -632,90 +658,166 @@ class _SupportScreenState extends State<SupportScreen> {
         statusLabel = 'Terbuka';
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF1F2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.report_problem_outlined,
-              color: Color(0xFFDC2626),
-            ),
+        elevation: 0,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  subject,
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: AppTheme.primaryColor,
-                  ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF1F2),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    color: Colors.grey[700],
-                  ),
+                child: const Icon(
+                  Icons.report_problem_outlined,
+                  color: Color(0xFFDC2626),
                 ),
-                const SizedBox(height: 8),
-                Row(
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: priorityColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        'Prioritas: $priorityLabel',
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          color: priorityColor,
-                        ),
+                    Text(
+                      subject,
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: AppTheme.primaryColor,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(20),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey[700],
                       ),
-                      child: Text(
-                        statusLabel,
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          color: statusColor,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: priorityColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'Prioritas: $priorityLabel',
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: priorityColor,
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: statusColor.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            statusLabel,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: statusColor,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
+        ),
       ),
+    );
+  }
+
+  void _showIssueDetail(Map<String, dynamic> issue) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        final bottomInset = MediaQuery.of(ctx).viewInsets.bottom;
+        final id = issue['id']?.toString() ?? '-';
+        final subject = issue['subject']?.toString() ?? '-';
+        final description = issue['description']?.toString() ?? '-';
+        final status = issue['status']?.toString() ?? 'open';
+        final priority = issue['priority']?.toString() ?? 'medium';
+        return Padding(
+          padding: EdgeInsets.fromLTRB(24, 16, 24, 16 + bottomInset),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Detail Laporan #$id',
+                    style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(subject, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: AppTheme.primaryColor)),
+              const SizedBox(height: 8),
+              Text(description, style: GoogleFonts.poppins(color: Colors.grey[800])),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Chip(label: Text('Status: $status')),
+                  const SizedBox(width: 8),
+                  Chip(label: Text('Prioritas: $priority')),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: Text('Tutup', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

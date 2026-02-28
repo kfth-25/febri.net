@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Subscription;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -82,7 +83,7 @@ class SubscriptionController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $id, NotificationService $notifier)
     {
         $subscription = Subscription::findOrFail($id);
         $user = $request->user();
@@ -97,7 +98,25 @@ class SubscriptionController extends Controller
                 'notes' => 'nullable|string',
             ]);
             
+            $oldStatus = $subscription->status;
             $subscription->update($validated);
+            // Emit request_update to subscription owner if status changed
+            if (isset($validated['status']) && $validated['status'] !== $oldStatus) {
+                $owner = $subscription->user;
+                if ($owner) {
+                    $newStatus = $subscription->status;
+                    $title = 'Status Permohonan Berubah';
+                    $body = 'Status langganan Anda sekarang: ' . $newStatus . '.';
+                    $notifier->sendPushToUser(
+                        $owner->id,
+                        $title,
+                        $body,
+                        ['subscription_id' => $subscription->id, 'status' => $newStatus, 'deeplink' => 'app://installation/status?id='.$subscription->id],
+                        'request_update'
+                    );
+                    $notifier->sendEmail($owner, $title, $body);
+                }
+            }
         } else {
             // Customer can only update notes or address if pending
             if ($subscription->user_id !== $user->id) {

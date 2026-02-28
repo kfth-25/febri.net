@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 import 'login_screen.dart';
+import 'notification_settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -109,7 +110,16 @@ class ProfileScreen extends StatelessWidget {
                     'Ubah Password',
                     () => _showChangePasswordSheet(context, auth),
                   ),
-                  _buildProfileOption(Icons.notifications_outlined, 'Notifikasi', () {}),
+                  _buildProfileOption(
+                    Icons.notifications_outlined,
+                    'Notifikasi',
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const NotificationSettingsScreen(),
+                      ),
+                    ),
+                  ),
                   _buildProfileOption(Icons.language, 'Bahasa', () {}),
                   _buildProfileOption(Icons.privacy_tip_outlined, 'Kebijakan Privasi', () {}),
                   const SizedBox(height: 24),

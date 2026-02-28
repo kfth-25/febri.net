@@ -3,9 +3,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/fcm_service.dart';
 
 class AuthProvider with ChangeNotifier {
-  static const String _baseUrl = 'http://192.168.11.158:8000/api';
+  static const String _baseUrl = 'http://192.168.1.4:8000/api';
 
   bool _isAuthenticated = false;
   bool _isLoading = true;
@@ -68,6 +69,18 @@ class AuthProvider with ChangeNotifier {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('token', accessToken);
           await prefs.setString('user', jsonEncode(userData));
+
+          try {
+            await FcmService().init();
+            final t = await FcmService().getTokenOrNull();
+            if (t != null) {
+              await _registerDeviceToken(t, platform: 'android');
+            }
+          } catch (_) {
+            try {
+              await _registerDeviceToken('local-only', platform: 'android');
+            } catch (_) {}
+          }
 
           _isLoading = false;
           notifyListeners();
@@ -135,6 +148,20 @@ class AuthProvider with ChangeNotifier {
       await prefs.setString('token', _token!);
       await prefs.setString('user', jsonEncode(mockUser));
 
+      try {
+        await FcmService().init();
+        final t = await FcmService().getTokenOrNull();
+        if (t != null) {
+          await _registerDeviceToken(t, platform: 'android');
+        } else {
+          await _registerDeviceToken('local-only', platform: 'android');
+        }
+      } catch (_) {
+        try {
+          await _registerDeviceToken('local-only', platform: 'android');
+        } catch (_) {}
+      }
+
       _isLoading = false;
       notifyListeners();
       return true;
@@ -143,6 +170,22 @@ class AuthProvider with ChangeNotifier {
     _isLoading = false;
     notifyListeners();
     return false;
+  }
+
+  Future<void> _registerDeviceToken(String token, {String? platform}) async {
+    if (_token == null) return;
+    await http.post(
+      Uri.parse('$_baseUrl/devices/register-token'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $_token',
+      },
+      body: jsonEncode({
+        'token': token,
+        if (platform != null) 'platform': platform,
+      }),
+    );
   }
 
   Future<void> logout() async {

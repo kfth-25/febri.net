@@ -4,8 +4,17 @@ import 'providers/auth_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
 import 'utils/app_theme.dart';
+import 'services/fcm_service.dart';
+import 'services/notification_service.dart';
 
-void main() {
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  FcmService.registerBackgroundHandler();
+  await NotificationService().init();
+  await FcmService().init();
+  FcmService().attachNavigator(appNavigatorKey);
   runApp(const MyApp());
 }
 
@@ -24,6 +33,7 @@ class MyApp extends StatelessWidget {
             title: 'Febri.net Mobile',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
+            navigatorKey: appNavigatorKey,
             home: auth.isLoading
                 ? const Scaffold(
                     body: Center(

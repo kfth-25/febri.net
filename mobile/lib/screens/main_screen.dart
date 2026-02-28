@@ -9,7 +9,9 @@ import 'profile_screen.dart';
 import 'support_screen.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final int? initialIndex;
+  final int? initialIssueId;
+  const MainScreen({super.key, this.initialIndex, this.initialIssueId});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -18,13 +20,20 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const DashboardScreen(),
-    const PackagesScreen(),
-    const BillingScreen(),
-    const SupportScreen(),
-    const ProfileScreen(),
-  ];
+  late List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex ?? 0;
+    _screens = [
+      const DashboardScreen(),
+      const PackagesScreen(),
+      const BillingScreen(),
+      SupportScreen(initialIssueId: widget.initialIssueId),
+      const ProfileScreen(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {

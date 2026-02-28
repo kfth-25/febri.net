@@ -14,7 +14,8 @@ import 'installation_screen.dart';
 import 'installation_detail_screen.dart';
 
 class InstallationStatusScreen extends StatefulWidget {
-  const InstallationStatusScreen({super.key});
+  final int? initialSubscriptionId;
+  const InstallationStatusScreen({super.key, this.initialSubscriptionId});
 
   @override
   State<InstallationStatusScreen> createState() =>
@@ -135,6 +136,21 @@ class _InstallationStatusScreenState extends State<InstallationStatusScreen> {
             setState(() {
               _activeSubscription = list.first;
             });
+            final initId = widget.initialSubscriptionId;
+            if (initId != null) {
+              try {
+                final messenger = ScaffoldMessenger.of(context);
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Membuka status langganan #$initId',
+                      style: GoogleFonts.poppins(),
+                    ),
+                    backgroundColor: AppTheme.primaryColor,
+                  ),
+                );
+              } catch (_) {}
+            }
           }
         }
       }

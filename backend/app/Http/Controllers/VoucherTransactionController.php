@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\VoucherTransaction;
 use App\Models\WifiPackage;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -51,7 +52,7 @@ class VoucherTransactionController extends Controller
         return response()->json($query->paginate(20));
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, NotificationService $notifier): JsonResponse
     {
         $validated = $request->validate([
             'wifi_package_id' => 'required|exists:wifi_packages,id',
@@ -68,7 +69,23 @@ class VoucherTransactionController extends Controller
             'voucher_code' => strtoupper(Str::random(8)),
         ]);
 
+        // Emit payment_received notification to user
+        $title = 'Pembayaran Berhasil';
+        $body = 'Voucher Anda telah diterbitkan: ' . $transaction->voucher_code . ' • Paket ' . ($package?->name ?? '-') . ' ' . ($package?->speed ?? '');
+        $notifier->sendPushToUser(
+            $user->id,
+            $title,
+            $body,
+            [
+                'voucher_code' => $transaction->voucher_code,
+                'wifi_package_id' => $transaction->wifi_package_id,
+                'amount' => (string)$transaction->amount,
+                'deeplink' => 'app://billing',
+            ],
+            'payment_received'
+        );
+        $notifier->sendEmail($user, $title, $body);
+
         return response()->json($transaction->load('wifiPackage'), 201);
     }
 }
-

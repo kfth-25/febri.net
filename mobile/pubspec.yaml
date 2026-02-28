@@ -43,6 +43,9 @@ dependencies:
   url_launcher: ^6.1.12
   webview_flutter: ^4.7.0
   image_picker: ^1.0.7
+  flutter_local_notifications: ^17.1.2
+  firebase_core: ^2.25.4
+  firebase_messaging: ^14.7.10
 
 dev_dependencies:
   flutter_test:

@@ -16,6 +16,8 @@ import 'installation_status_screen.dart';
 import 'wifi_scanner_screen.dart';
 import 'nearby_wifi_screen.dart';
 import 'billing_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/fcm_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -27,6 +29,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic>? _activeSubscription;
   Map<String, dynamic>? _voucherSummary;
+  List<Map<String, dynamic>> _recentNotifs = [];
 
   @override
   void initState() {
@@ -34,6 +37,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadActiveSubscription();
       _loadVoucherSummary();
+      _loadRecentNotifications();
     });
   }
 
@@ -89,6 +93,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
           setState(() {
             _voucherSummary = decoded;
           });
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadRecentNotifications() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('recent_notifications');
+      if (raw != null && raw.isNotEmpty) {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          final list = decoded
+              .whereType<Map>()
+              .map((e) => e.map((k, v) => MapEntry(k.toString(), v)))
+              .toList();
+          if (mounted) {
+            setState(() {
+              _recentNotifs = list;
+            });
+          }
         }
       }
     } catch (_) {}
@@ -515,6 +540,88 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
                   
                   const SizedBox(height: 32),
+                  if (_recentNotifs.isNotEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Notifikasi Terbaru',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: AppTheme.primaryColor,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ..._recentNotifs.take(3).map((n) {
+                            final title = n['title']?.toString() ?? 'Notifikasi';
+                            final body = n['body']?.toString() ?? '';
+                            final type = n['type']?.toString();
+                            final deeplink = n['deeplink']?.toString();
+                            final data = (n['data'] is Map<String, dynamic>)
+                                ? (n['data'] as Map<String, dynamic>)
+                                : <String, dynamic>{};
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(Icons.notifications_none, color: AppTheme.primaryColor),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          title,
+                                          style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.w600,
+                                            color: AppTheme.primaryColor,
+                                          ),
+                                        ),
+                                        if (body.isNotEmpty)
+                                          Text(
+                                            body,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  TextButton(
+                                    onPressed: () {
+                                      FcmService().openPayloadNavigation(type, data, deeplink);
+                                    },
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: AppTheme.primaryColor,
+                                    ),
+                                    child: Text(
+                                      'Buka',
+                                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                    ).animate().fadeIn(delay: 500.ms),
+                  
+                  const SizedBox(height: 16),
                   
                   // Promo Banner
                   Container(

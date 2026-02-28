@@ -8,6 +8,9 @@ use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\NetworkScanController;
 use App\Http\Controllers\VoucherTransactionController;
+use App\Http\Controllers\DeviceTokenController;
+use App\Http\Controllers\NotificationPreferenceController;
+use App\Http\Controllers\NotificationAdminController;
 
 // Public Routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -59,4 +62,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('issues', \App\Http\Controllers\IssueController::class);
 
     Route::post('/network-scans', [NetworkScanController::class, 'store']);
+
+    // Notification: device token and preferences
+    Route::post('/devices/register-token', [DeviceTokenController::class, 'store']);
+    Route::delete('/devices/register-token', [DeviceTokenController::class, 'destroy']);
+    Route::get('/notification-preferences', [NotificationPreferenceController::class, 'show']);
+    Route::put('/notification-preferences', [NotificationPreferenceController::class, 'update']);
+
+    // Admin/Test send notifications
+    Route::post('/notifications/test', [NotificationAdminController::class, 'test']);
 });

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Issue;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -37,7 +38,7 @@ class IssueController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request, NotificationService $notifier)
     {
         $request->validate([
             'subscription_id' => 'required|exists:subscriptions,id',
@@ -54,6 +55,24 @@ class IssueController extends Controller
             'priority' => $request->priority ?? 'medium',
             'status' => 'open',
         ]);
+
+        // Emit outage notification to subscription owner (immediate creation)
+        $issue->load('subscription.user');
+        $subUser = optional($issue->subscription)->user;
+        if ($subUser) {
+            $title = $issue->priority === 'critical' ? 'Gangguan Jaringan (Kritis)' : 'Laporan Gangguan Diterima';
+            $body = $issue->priority === 'critical'
+                ? 'Kami mendeteksi gangguan jaringan pada area layanan Anda. Tim kami sedang menangani.'
+                : 'Laporan gangguan Anda telah diterima. Kami akan segera menindaklanjuti.';
+            $notifier->sendPushToUser(
+                $subUser->id,
+                $title,
+                $body,
+                ['issue_id' => $issue->id, 'priority' => $issue->priority, 'deeplink' => 'app://support/outage?issue_id='.$issue->id],
+                'outage'
+            );
+            $notifier->sendEmail($subUser, $title, $body);
+        }
 
         return response()->json($issue, 201);
     }
@@ -78,7 +97,7 @@ class IssueController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Issue $issue)
+    public function update(Request $request, Issue $issue, NotificationService $notifier)
     {
         $user = $request->user();
 
@@ -110,7 +129,38 @@ class IssueController extends Controller
             $validated['resolved_at'] = now();
         }
 
+        $oldStatus = $issue->status;
         $issue->update($validated);
+
+        // Emit outage status change notifications to subscription owner
+        $issue->load('subscription.user');
+        $subUser = optional($issue->subscription)->user;
+        if ($subUser) {
+            if ($oldStatus !== $issue->status) {
+                if ($issue->status === 'resolved') {
+                    $title = 'Gangguan Dipulihkan';
+                    $body = 'Gangguan jaringan pada layanan Anda telah dipulihkan. Terima kasih atas kesabarannya.';
+                    $notifier->sendPushToUser(
+                        $subUser->id,
+                        $title,
+                        $body,
+                        ['issue_id' => $issue->id, 'priority' => $issue->priority, 'deeplink' => 'app://support/outage?issue_id='.$issue->id],
+                        'outage'
+                    );
+                    $notifier->sendEmail($subUser, $title, $body);
+                } elseif ($issue->status === 'in_progress') {
+                    $title = 'Penanganan Gangguan Dimulai';
+                    $body = 'Teknisi kami sedang menangani gangguan yang Anda laporkan.';
+                    $notifier->sendPushToUser(
+                        $subUser->id,
+                        $title,
+                        $body,
+                        ['issue_id' => $issue->id, 'priority' => $issue->priority, 'deeplink' => 'app://support/outage?issue_id='.$issue->id],
+                        'outage'
+                    );
+                }
+            }
+        }
 
         return response()->json($issue);
     }
