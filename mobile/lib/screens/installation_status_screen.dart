@@ -593,7 +593,7 @@ class _InstallationStatusScreenState extends State<InstallationStatusScreen> {
                 child: AspectRatio(
                   aspectRatio: 16 / 9,
                   child: Image.file(
-                    File(photoPath!),
+                    File(photoPath),
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(

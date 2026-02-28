@@ -443,7 +443,7 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
     }
 
     if (hasHostname) {
-      return hostname!;
+      return hostname;
     }
 
     return ip;

@@ -10,7 +10,6 @@ import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 import 'speed_test_screen.dart';
 import 'support_screen.dart';
-import 'profile_screen.dart';
 import 'installation_screen.dart';
 import 'installation_status_screen.dart';
 import 'wifi_scanner_screen.dart';

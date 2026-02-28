@@ -36,7 +36,6 @@ class _InstallationScreenState extends State<InstallationScreen> {
   late final WebViewController _webViewController;
   XFile? _locationImage;
   bool _hasActiveSubscription = false;
-  bool _checkingSubscription = false;
 
   final List<Map<String, dynamic>> _packages = [
     {
@@ -92,9 +91,7 @@ class _InstallationScreenState extends State<InstallationScreen> {
     final token = auth.token;
     if (token == null) return;
 
-    setState(() {
-      _checkingSubscription = true;
-    });
+    // start checking active subscription
 
     try {
       final uri =
@@ -118,11 +115,7 @@ class _InstallationScreenState extends State<InstallationScreen> {
     } catch (_) {
       if (!mounted) return;
     } finally {
-      if (mounted) {
-        setState(() {
-          _checkingSubscription = false;
-        });
-      }
+      // done checking
     }
   }
 

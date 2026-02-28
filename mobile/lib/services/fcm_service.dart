@@ -166,7 +166,6 @@ class FcmService {
     if (deeplink != null && deeplink.isNotEmpty) {
       try {
         final uri = Uri.parse(deeplink);
-        final idParam = uri.queryParameters['issue_id'] ?? uri.queryParameters['id'];
         issueId = int.tryParse(uri.queryParameters['issue_id'] ?? '');
         subscriptionId = int.tryParse(uri.queryParameters['id'] ?? '');
         if (uri.host == 'billing') {
