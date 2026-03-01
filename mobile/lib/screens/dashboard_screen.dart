@@ -29,6 +29,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic>? _activeSubscription;
   Map<String, dynamic>? _voucherSummary;
   List<Map<String, dynamic>> _recentNotifs = [];
+  int? _wifiDevicesCount;
+  bool _wifiCountLoading = false;
+  String? _wifiCountError;
 
   @override
   void initState() {
@@ -37,6 +40,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _loadActiveSubscription();
       _loadVoucherSummary();
       _loadRecentNotifications();
+      _loadWifiCountFromPrefs().then((found) {
+        if (!found) {
+          _peekWifiDevicesCount();
+        }
+      });
     });
   }
 
@@ -116,6 +124,71 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
       }
     } catch (_) {}
+  }
+
+  Future<bool> _loadWifiCountFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final count = prefs.getInt('wifi_last_devices_count');
+      if (count != null) {
+        if (mounted) {
+          setState(() {
+            _wifiDevicesCount = count;
+            _wifiCountLoading = false;
+          });
+        }
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  Future<void> _peekWifiDevicesCount() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final token = auth.token;
+    if (token == null) return;
+    setState(() {
+      _wifiCountLoading = true;
+      _wifiCountError = null;
+    });
+    try {
+      final uri = Uri.parse('${AuthProvider.baseUrl}/network-scans');
+      final headers = <String, String>{
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+      final response = await http
+          .post(uri, headers: headers)
+          .timeout(const Duration(seconds: 6));
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        final raw = jsonDecode(response.body) as Map<String, dynamic>;
+        final devices = (raw['devices'] as List<dynamic>? ?? [])
+            .whereType<Map>()
+            .toList();
+        setState(() {
+          _wifiDevicesCount = devices.length;
+        });
+      } else {
+        setState(() {
+          _wifiDevicesCount = null;
+          _wifiCountError = 'Gagal memuat';
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _wifiDevicesCount = null;
+        _wifiCountError = 'Gagal memuat';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _wifiCountLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -421,7 +494,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           color: Colors.blue,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: _buildStatCard(
                           icon: FontAwesomeIcons.upload,
@@ -435,6 +508,129 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ).animate().fadeIn(delay: 200.ms).slideX(),
                   
                   const SizedBox(height: 32),
+                  // WiFi Scanner Compact Card
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const WifiScannerScreen(),
+                        ),
+                      ).then((_) => _loadWifiCountFromPrefs());
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE7F6FB),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.wifi_rounded,
+                              color: Color(0xFF00B2CC),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'WiFi\nScanner',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    height: 1.1,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.primaryColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Lihat perangkat di jaringanmu',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  softWrap: true,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE6F4EA),
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (_wifiCountLoading)
+                                      const SizedBox(
+                                        width: 14,
+                                        height: 14,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1E7D3B)),
+                                        ),
+                                      )
+                                    else
+                                      const Icon(
+                                        Icons.circle,
+                                        size: 10,
+                                        color: Color(0xFF1E7D3B),
+                                      ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '${_wifiDevicesCount ?? 0} online',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF1E7D3B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.chevron_right, color: Colors.grey),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.1, end: 0),
+                  
+                  const SizedBox(height: 24),
                   
                   Text(
                     'Menu Cepat',
@@ -499,18 +695,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                       ),
-                      _buildQuickAction(
-                        context,
-                        Icons.wifi_tethering,
-                        'Perangkat',
-                        Colors.indigo,
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const WifiScannerScreen(),
-                          ),
-                        ),
-                      ),
+                      // Perangkat quick action dihapus sesuai permintaan
                       _buildQuickAction(
                         context,
                         Icons.wifi_find,
@@ -705,58 +890,96 @@ class _DashboardScreenState extends State<DashboardScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
+              gradient: LinearGradient(
+                colors: [color.withOpacity(0.18), color.withOpacity(0.06)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
+            alignment: Alignment.center,
             child: FaIcon(icon, color: color, size: 20),
           ),
-          const SizedBox(height: 16),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              color: Colors.grey,
-              fontSize: 12,
-            ),
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                value,
-                style: GoogleFonts.poppins(
-                  color: AppTheme.primaryColor,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  unit,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
                   style: GoogleFonts.poppins(
-                    color: Colors.grey,
+                    color: Colors.grey[700],
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      value,
+                      style: GoogleFonts.poppins(
+                        color: AppTheme.primaryColor,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: Text(
+                        unit,
+                        style: GoogleFonts.poppins(
+                          color: Colors.grey[700],
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: FractionallySizedBox(
+                      widthFactor: 0.5,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [color, color.withOpacity(0.6)],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

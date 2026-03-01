@@ -23,6 +23,7 @@ class _VoucherPaymentScreenState extends State<VoucherPaymentScreen> {
   bool _isProcessing = false;
   String? _voucherCode;
   bool _savedLocally = false;
+  String _selectedMethod = 'bank_transfer';
 
   Future<void> _saveVoucherLocally() async {
     if (_voucherCode == null) return;
@@ -79,6 +80,7 @@ class _VoucherPaymentScreenState extends State<VoucherPaymentScreen> {
         },
         body: jsonEncode({
           'wifi_package_id': widget.package['id'],
+          'payment_method': _selectedMethod,
         }),
       );
 
@@ -255,9 +257,9 @@ class _VoucherPaymentScreenState extends State<VoucherPaymentScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        _buildPaymentOption('Transfer Bank', Icons.account_balance, true),
-        _buildPaymentOption('E-Wallet (OVO, GoPay, Dana)', Icons.wallet, false),
-        _buildPaymentOption('Kartu Kredit', Icons.credit_card, false),
+        _buildPaymentOption('Transfer Bank', Icons.account_balance, 'bank_transfer'),
+        _buildPaymentOption('E-Wallet (OVO, GoPay, Dana)', Icons.wallet, 'ewallet'),
+        _buildPaymentOption('Kartu Kredit', Icons.credit_card, 'credit_card'),
         const SizedBox(height: 48),
         SizedBox(
           width: double.infinity,
@@ -299,35 +301,48 @@ class _VoucherPaymentScreenState extends State<VoucherPaymentScreen> {
     );
   }
 
-  Widget _buildPaymentOption(String title, IconData icon, bool isSelected) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isSelected ? AppTheme.primaryColor.withOpacity(0.05) : Colors.white,
-        border: Border.all(
-          color: isSelected ? AppTheme.secondaryColor : Colors.grey[300]!,
-          width: isSelected ? 2 : 1,
-        ),
+  Widget _buildPaymentOption(String title, IconData icon, String key) {
+    final isSelected = _selectedMethod == key;
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: isSelected ? AppTheme.secondaryColor : AppTheme.primaryColor),
-          const SizedBox(width: 16),
-          Text(
-            title,
-            style: GoogleFonts.poppins(
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? AppTheme.primaryColor : Colors.grey[800],
+        onTap: () {
+          setState(() {
+            _selectedMethod = key;
+          });
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.primaryColor.withOpacity(0.05) : Colors.white,
+            border: Border.all(
+              color: isSelected ? AppTheme.secondaryColor : Colors.grey[300]!,
+              width: isSelected ? 2 : 1,
             ),
+            borderRadius: BorderRadius.circular(12),
           ),
-          const Spacer(),
-          Icon(
-            isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-            color: isSelected ? AppTheme.secondaryColor : Colors.grey,
+          child: Row(
+            children: [
+              Icon(icon, color: isSelected ? AppTheme.secondaryColor : AppTheme.primaryColor),
+              const SizedBox(width: 16),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected ? AppTheme.primaryColor : Colors.grey[800],
+                ),
+              ),
+              const Spacer(),
+              Icon(
+                isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                color: isSelected ? AppTheme.secondaryColor : Colors.grey,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

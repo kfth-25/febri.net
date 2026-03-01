@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 import '../utils/app_theme.dart';
+import 'voucher_card_screen.dart';
 
 class BillingScreen extends StatefulWidget {
   const BillingScreen({super.key});
@@ -122,110 +123,218 @@ class _BillingScreenState extends State<BillingScreen> {
                         savedLabel = '${dt.day}/${dt.month}/${dt.year} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
                       } catch (_) {}
 
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => VoucherCardScreen(
+                                code: code,
+                                packageName: name,
+                                speed: speed,
+                                price: price,
+                              ),
                             ),
-                          ],
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.primaryColor.withOpacity(0.06),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(Icons.wifi_rounded, color: AppTheme.primaryColor),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(name.isEmpty ? 'Paket Wi‑Fi' : name,
-                                            style: GoogleFonts.poppins(
-                                              fontWeight: FontWeight.w600,
-                                              color: AppTheme.primaryColor,
-                                            )),
-                                        Text(
-                                          speed.isEmpty ? '-' : speed,
-                                          style: GoogleFonts.poppins(color: AppTheme.secondaryColor),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Text(
-                                    'Rp ${price ?? 0}',
-                                    style: GoogleFonts.poppins(fontWeight: FontWeight.w700, color: AppTheme.primaryColor),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primaryColor.withOpacity(0.05),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: AppTheme.primaryColor.withOpacity(0.1)),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      code,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 2,
-                                        color: AppTheme.primaryColor,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    IconButton(
-                                      onPressed: () {
-                                        Clipboard.setData(ClipboardData(text: code));
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Kode disalin')),
-                                        );
-                                      },
-                                      icon: const Icon(Icons.copy),
-                                      color: AppTheme.primaryColor,
-                                      tooltip: 'Salin',
-                                    ),
-                                    IconButton(
-                                      onPressed: () => _removeAt(index),
-                                      icon: const Icon(Icons.delete_outline),
-                                      color: Colors.redAccent,
-                                      tooltip: 'Hapus',
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text('Disimpan: $savedLabel', style: GoogleFonts.poppins(color: Colors.grey[600])),
-                                  Text('Voucher', style: GoogleFonts.poppins(color: Colors.grey[600])),
-                                ],
-                              ),
-                            ],
-                          ),
+                          );
+                        },
+                        child: _buildVoucherCardItem(
+                          context: context,
+                          name: name,
+                          speed: speed,
+                          price: price,
+                          code: code,
+                          savedLabel: savedLabel,
+                          index: index,
                         ),
                       );
                     },
                   ),
+      ),
+    );
+  }
+
+  Widget _buildVoucherCardItem({
+    required BuildContext context,
+    required String name,
+    required String speed,
+    required dynamic price,
+    required String code,
+    required String savedLabel,
+    required int index,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.secondaryColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.wifi, color: AppTheme.primaryColor),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name.isEmpty ? 'Paket Wi‑Fi' : name,
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        speed.isEmpty ? '-' : speed,
+                        style: GoogleFonts.poppins(
+                          color: AppTheme.secondaryColor,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  'Rp ${price ?? 0}',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 18,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 18,
+                        decoration: const BoxDecoration(
+                          color: AppTheme.backgroundColor,
+                          borderRadius: BorderRadius.only(
+                            topRight: Radius.circular(18),
+                            bottomRight: Radius.circular(18),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: 36,
+                        height: 18,
+                        decoration: const BoxDecoration(
+                          color: AppTheme.backgroundColor,
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(18),
+                            bottomLeft: Radius.circular(18),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Center(
+                  child: Container(
+                    height: 1,
+                    margin: const EdgeInsets.symmetric(horizontal: 36),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(
+                          color: Colors.grey.shade300,
+                          width: 1,
+                          style: BorderStyle.solid,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.primaryColor.withOpacity(0.1)),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        code,
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 2,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: code));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Kode disalin')),
+                          );
+                        },
+                        icon: const Icon(Icons.copy),
+                        color: AppTheme.primaryColor,
+                        tooltip: 'Salin',
+                      ),
+                      IconButton(
+                        onPressed: () => _removeAt(index),
+                        icon: const Icon(Icons.delete_outline),
+                        color: Colors.redAccent,
+                        tooltip: 'Hapus',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Disimpan: $savedLabel', style: GoogleFonts.poppins(color: Colors.grey[600])),
+                    Text('Voucher', style: GoogleFonts.poppins(color: Colors.grey[600])),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

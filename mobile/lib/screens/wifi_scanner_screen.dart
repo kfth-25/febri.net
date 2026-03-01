@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
@@ -64,6 +65,17 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
           _scannedAt = raw['scanned_at']?.toString();
           _serverIp = raw['server_ip']?.toString();
         });
+
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('wifi_last_devices_count', devices.length);
+          await prefs.setString(
+            'wifi_last_scanned_at',
+            (_scannedAt?.isNotEmpty == true)
+                ? _scannedAt!
+                : DateTime.now().toIso8601String(),
+          );
+        } catch (_) {}
       } else {
         if (!mounted) return;
         if (response.statusCode == 401) {

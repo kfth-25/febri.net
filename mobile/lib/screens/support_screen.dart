@@ -267,12 +267,15 @@ class _SupportScreenState extends State<SupportScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            Text(
-              'Butuh Bantuan?',
-              style: GoogleFonts.poppins(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryColor,
+            Center(
+              child: Text(
+                'Butuh Bantuan?',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryColor,
+                ),
               ),
             ),
             const SizedBox(height: 8),
