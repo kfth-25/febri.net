@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_theme.dart';
 import 'billing_screen.dart';
 import 'dashboard_screen.dart';
+import 'saldo_screen.dart';
 import 'profile_screen.dart';
 import 'support_screen.dart';
 
@@ -16,7 +17,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _pageIndex = 1; // 0: Billing, 1: Home, 2: Profile
+  int _pageIndex = 1; // 0: Billing, 1: Home, 2: Saldo, 3: Profile
   late final PageController _pageController;
 
   @override
@@ -24,12 +25,12 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _pageController = PageController(initialPage: 1);
     if (widget.initialIndex != null) {
-      // Map indeks lama ke skema baru
-      // 0: Home, 1: Packages, 2: Billing, 3: Support, 4: Profile
+      // Map indeks lama (sebelum ada Saldo) ke skema baru
+      // Lama: 0: Home, 1: Packages, 2: Billing, 3: Support, 4: Profile
       final old = widget.initialIndex!;
       if (old == 0) _pageIndex = 1;
       if (old == 2) _pageIndex = 0;
-      if (old == 4) _pageIndex = 2;
+      if (old == 4) _pageIndex = 3;
       // Untuk support, buka terpisah setelah frame pertama
       if (old == 3) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -53,7 +54,8 @@ class _MainScreenState extends State<MainScreen> {
         children: const [
           BillingScreen(),   // kiri
           DashboardScreen(), // tengah
-          ProfileScreen(),   // kanan
+          SaldoScreen(),     // kanan 1
+          ProfileScreen(),   // kanan 2
         ],
       ),
       bottomNavigationBar: SafeArea(
@@ -99,12 +101,23 @@ class _MainScreenState extends State<MainScreen> {
                 },
               ),
               _NavItem(
-                icon: Icons.person,
-                label: 'Akun',
+                icon: Icons.savings,
+                label: 'Saldo',
                 selected: _pageIndex == 2,
                 onTap: () {
                   setState(() => _pageIndex = 2);
                   _pageController.animateToPage(2,
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOut);
+                },
+              ),
+              _NavItem(
+                icon: Icons.person,
+                label: 'Akun',
+                selected: _pageIndex == 3,
+                onTap: () {
+                  setState(() => _pageIndex = 3);
+                  _pageController.animateToPage(3,
                       duration: const Duration(milliseconds: 250),
                       curve: Curves.easeOut);
                 },

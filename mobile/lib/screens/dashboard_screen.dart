@@ -15,6 +15,8 @@ import 'installation_status_screen.dart';
 import 'wifi_scanner_screen.dart';
 import 'nearby_wifi_screen.dart';
 import 'billing_screen.dart';
+import 'chat_screen.dart';
+import 'profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/fcm_service.dart';
 
@@ -372,7 +374,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ],
                           ),
                           const SizedBox(width: 12),
-                          Stack(
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const ProfileScreen(),
+                                ),
+                              );
+                            },
+                            child: Stack(
                             clipBehavior: Clip.none,
                             children: [
                               CircleAvatar(
@@ -399,6 +409,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ),
                             ],
+                            ),
                           ),
                         ],
                       ),
@@ -781,6 +792,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                       ),
+                      _buildQuickAction(
+                        context,
+                        Icons.chat_bubble_outline,
+                        'Chat',
+                        Colors.teal,
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ChatScreen(),
+                          ),
+                        ),
+                      ),
                     ],
                   ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
                   
@@ -1053,20 +1076,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onTap: onTap,
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+          Material(
+            color: color,
+            borderRadius: BorderRadius.circular(14),
+            elevation: 0,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(14),
+              splashColor: Colors.white.withOpacity(0.2),
+              highlightColor: Colors.white.withOpacity(0.1),
+              child: SizedBox(
+                width: 64,
+                height: 64,
+                child: Center(
+                  child: Icon(
+                    icon,
+                    size: 24,
+                    color: Colors.white,
+                  ),
                 ),
-              ],
+              ),
             ),
-            child: Icon(icon, color: color),
           ),
           const SizedBox(height: 8),
           Text(
@@ -1074,7 +1104,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             style: GoogleFonts.poppins(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: AppTheme.primaryColor,
+              color: Colors.black87,
             ),
           ),
         ],
