@@ -8,6 +8,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '_topup_widgets.dart';
 import 'speed_test_screen.dart';
 import 'support_screen.dart';
 import 'installation_screen.dart';
@@ -17,7 +19,6 @@ import 'nearby_wifi_screen.dart';
 import 'billing_screen.dart';
 import 'chat_screen.dart';
 import 'profile_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/fcm_service.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -34,6 +35,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int? _wifiDevicesCount;
   bool _wifiCountLoading = false;
   String? _wifiCountError;
+  int? _walletBalance; // dalam rupiah
 
   @override
   void initState() {
@@ -47,6 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _peekWifiDevicesCount();
         }
       });
+      _loadWalletBalanceFromPrefs();
     });
   }
 
@@ -78,6 +81,165 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
       }
     } catch (_) {}
+  }
+
+  Future<void> _loadWalletBalanceFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final bal = prefs.getInt('febripay_balance') ?? 85500;
+      if (mounted) {
+        setState(() {
+          _walletBalance = bal;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveWalletBalanceToPrefs(int value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('febripay_balance', value);
+    } catch (_) {}
+  }
+
+  void _showTopUpSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (ctx) {
+        int selected = 0;
+        return StatefulBuilder(builder: (ctx, setLocal) {
+          void pick(int amt) {
+            setLocal(() => selected = amt);
+          }
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+              top: 10,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE5E7EB),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Top Up Saldo',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    TopUpMethod(icon: Icons.qr_code, label: 'QRIS'),
+                    TopUpMethod(icon: Icons.account_balance, label: 'Virtual\nAccount'),
+                    TopUpMethod(icon: Icons.account_balance_wallet, label: 'Transfer\nBank'),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Nominal Top Up',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: Text(
+                    selected == 0 ? 'Rp 0' : _formatRupiah(selected),
+                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.primaryColor),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    NominalChip(label: 'Rp 20rb', onTap: () => pick(20000), selected: selected == 20000),
+                    NominalChip(label: 'Rp 50rb', onTap: () => pick(50000), selected: selected == 50000),
+                    NominalChip(label: 'Rp 100rb', onTap: () => pick(100000), selected: selected == 100000),
+                    NominalChip(label: 'Rp 200rb', onTap: () => pick(200000), selected: selected == 200000),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: selected == 0
+                        ? null
+                        : () {
+                            final current = _walletBalance ?? 0;
+                            final next = current + selected;
+                            setState(() => _walletBalance = next);
+                            _saveWalletBalanceToPrefs(next);
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Top up berhasil: ${_formatRupiah(selected)}'),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00D4A0),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: Text('Lanjutkan Top Up', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Batal'),
+                ),
+              ],
+            ),
+          );
+        });
+      },
+    );
+  }
+
+  String _formatRupiah(int nominal) {
+    final s = nominal.toString();
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      final rev = s.length - i;
+      buf.write(s[i]);
+      if (rev > 1 && rev % 3 == 1) buf.write('.');
+    }
+    return 'Rp $buf';
   }
 
   Future<void> _loadVoucherSummary() async {
@@ -286,27 +448,63 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             // Header Section
             Container(
-              padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
+              padding: const EdgeInsets.fromLTRB(24, 52, 24, 28),
               decoration: BoxDecoration(
                 color: AppTheme.primaryColor,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(32),
                   bottomRight: Radius.circular(32),
                 ),
-                image: DecorationImage(
-                  image: const NetworkImage(
-                    'https://images.unsplash.com/photo-1451187580459-43490279c0fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80',
-                  ),
-                  fit: BoxFit.cover,
-                  colorFilter: ColorFilter.mode(
-                    AppTheme.primaryColor.withOpacity(0.80),
-                    BlendMode.srcOver,
-                  ),
-                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Stack(
                 children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '17.34',
+                        style: GoogleFonts.jetBrainsMono(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0x1F00C8D7),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0x3300C8D7)),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF00C8D7), shape: BoxShape.circle)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'WiFi · ${_wifiDevicesCount ?? 0} online',
+                                  style: const TextStyle(color: Color(0xFF00C8D7), fontSize: 10, fontWeight: FontWeight.w700),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '15%',
+                            style: GoogleFonts.jetBrainsMono(
+                              color: Colors.white54,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -323,6 +521,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const SizedBox(height: 4),
                           Text(
                             user?['name'] ?? 'User',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.poppins(
                               color: Colors.white,
                               fontSize: 20,
@@ -422,11 +622,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [AppTheme.secondaryColor, Color(0xFF00B2CC)],
+                        colors: [
+                          Color(0xFF00AAB8),
+                          Color(0xFF00CFE0),
+                          Color(0xFF00E8CC),
+                          Color(0xFF00D4A8)
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
                           color: AppTheme.secondaryColor.withOpacity(0.3),
@@ -511,8 +716,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   totalVoucherTransactions > 0) ...[
                                 const SizedBox(height: 4),
                                 Text(
-                                  currentVoucherUsedCount != null &&
-                                          currentVoucherUsedCount > 0
+                                  (currentVoucherUsedCount ?? 0) > 0
                                       ? 'Voucher ini sudah dipilih ${currentVoucherUsedCount}x'
                                       : 'Belum ada transaksi untuk voucher ini',
                                   style: GoogleFonts.poppins(
@@ -536,9 +740,108 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                   ).animate().slideY(begin: 0.2, end: 0, duration: 600.ms),
-                ],
-              ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF121C2C),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.white.withOpacity(0.08)),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.14), blurRadius: 12, offset: const Offset(0, 4)),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white.withOpacity(0.12)),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Icon(Icons.account_balance_wallet, color: Colors.white),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'FEBRIPAY • @${(user?['name'] ?? 'user').toString().split(' ').first.toLowerCase()}',
+                                style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 6),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    const Text('Rp ', style: TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.w600)),
+                                    Text(
+                                      _walletBalance == null ? '-' : _formatRupiah(_walletBalance!).replaceFirst('Rp ', ''),
+                                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: _showTopUpSheet,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.10),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.white.withOpacity(0.18)),
+                                ),
+                                child: const Text('Top Up', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.06),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.white.withOpacity(0.14)),
+                              ),
+                              child: const Text('Kirim', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.06),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.white.withOpacity(0.14)),
+                              ),
+                              alignment: Alignment.center,
+                              child: const Icon(Icons.chevron_right, color: Colors.white70, size: 18),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  // end FebriPay card inside Column
+                  ],
+                ),
+                // end Column in Stack
+              ],
             ),
+            ),
+            // end header Container
 
             // Quick Stats Grid
             Padding(
@@ -896,9 +1199,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF0F0A24), Color(0xFF1A1040), Color(0xFF0D1A3A)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(color: const Color(0x405B21B6)),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20, offset: const Offset(0, 4)),
+                      ],
                     ),
                     child: Row(
                       children: [
@@ -909,47 +1219,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.red.shade100,
+                                  gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF5B21B6)]),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Text(
+                                child: const Text(
                                   'PROMO TERBATAS',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.red,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              Text(
-                                'Upgrade Speed 2x!',
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: AppTheme.primaryColor,
-                                ),
+                              const Text(
+                                'Upgrade Speed 2×!',
+                                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
                               ),
-                              Text(
-                                'Hanya tambah Rp 50rb',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.grey,
-                                  fontSize: 12,
-                                ),
+                              const Text(
+                                'Hanya tambah Rp 50rb/bulan',
+                                style: TextStyle(color: Colors.white70, fontSize: 11),
                               ),
                             ],
                           ),
                         ),
-                        ElevatedButton(
+                        TextButton(
                           onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryColor,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.white.withOpacity(0.08),
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Color(0x24FFFFFF)),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
-                          child: const Text('Cek'),
+                          child: const Text('Cek →', style: TextStyle(fontWeight: FontWeight.w700)),
                         ),
                       ],
                     ),

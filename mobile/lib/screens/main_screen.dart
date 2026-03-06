@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../utils/app_theme.dart';
 import 'billing_screen.dart';
 import 'dashboard_screen.dart';
-import 'saldo_screen.dart';
+import 'komunitas_screen.dart';
 import 'profile_screen.dart';
 import 'support_screen.dart';
 
@@ -17,7 +16,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _pageIndex = 1; // 0: Billing, 1: Home, 2: Saldo, 3: Profile
+  int _pageIndex = 1;
   late final PageController _pageController;
 
   @override
@@ -54,7 +53,7 @@ class _MainScreenState extends State<MainScreen> {
         children: const [
           BillingScreen(),   // kiri
           DashboardScreen(), // tengah
-          SaldoScreen(),     // kanan 1
+          KomunitasScreen(), // kanan 1
           ProfileScreen(),   // kanan 2
         ],
       ),
@@ -101,8 +100,8 @@ class _MainScreenState extends State<MainScreen> {
                 },
               ),
               _NavItem(
-                icon: Icons.savings,
-                label: 'Saldo',
+                icon: Icons.groups_rounded,
+                label: 'Komunitas',
                 selected: _pageIndex == 2,
                 onTap: () {
                   setState(() => _pageIndex = 2);
