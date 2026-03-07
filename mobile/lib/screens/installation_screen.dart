@@ -322,344 +322,312 @@ class _InstallationScreenState extends State<InstallationScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Pemasangan Baru',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: AppTheme.primaryColor,
-        foregroundColor: Colors.white,
-      ),
-      body: _hasActiveSubscription
-          ? _buildAlreadyInstalledBody(context, bottomInset)
-          : SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                24,
-                24,
-                24,
-                24 + bottomInset + 16,
-              ),
-              child: Form(
-                key: _formKey,
-                child: Column(
+      backgroundColor: const Color(0xFF0B1221), // Dark background for top
+      body: Column(
+        children: [
+          // Custom Header
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 50, 20, 30),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white70, size: 18),
+                    onPressed: () => Navigator.maybePop(context),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Form Pemasangan WiFi Febri.net',
+                      'FEBRI.NET',
                       style: GoogleFonts.poppins(
-                        fontSize: 20,
+                        color: Colors.white54,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    Text(
+                      'Pasang Baru',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryColor,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Isi data di bawah ini, tim kami akan segera menghubungi Anda untuk konfirmasi jadwal dan pengecekan jaringan.',
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    if (_error != null)
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFE5E5),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          _error!,
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            color: const Color(0xFFB91C1C),
-                          ),
-                        ),
-                      ),
-                    Text(
-                      'Data Calon Pelanggan',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryColor,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nama Lengkap',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Nama tidak boleh kosong';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _phoneController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nomor HP / WhatsApp',
-                        prefixIcon: Icon(Icons.phone_android_outlined),
-                      ),
-                      keyboardType: TextInputType.phone,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Nomor HP wajib diisi';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Email (opsional)',
-                        prefixIcon: Icon(Icons.email_outlined),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Alamat Pemasangan',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryColor,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _addressController,
-                      decoration: const InputDecoration(
-                        labelText:
-                            'Alamat lengkap (jalan, nomor rumah, RT/RW, patokan)',
-                        prefixIcon: Icon(Icons.location_on_outlined),
-                      ),
-                      maxLines: 3,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Alamat pemasangan wajib diisi';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Link Google Maps',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryColor,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _mapLinkController,
-                            decoration: const InputDecoration(
-                              labelText: 'Tempel link atau kata kunci lokasi',
-                              prefixIcon: Icon(Icons.map_outlined),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: _updateMapPreview,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryColor,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 14,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: Text(
-                            'LIHAT',
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    if (_currentMapUrl != null)
-                      Container(
-                        height: 220,
-                        margin: const EdgeInsets.only(top: 4, bottom: 12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: WebViewWidget(
-                          controller: _webViewController,
-                        ),
-                      ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Voucher WiFi',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryColor,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: _selectedPackageId,
-                      decoration: const InputDecoration(
-                        labelText: 'Pilih voucher',
-                      ),
-                      items: _packages
-                          .map(
-                            (pkg) => DropdownMenuItem<String>(
-                              value: pkg['id'] as String,
-                              child: Text(
-                                '${pkg['name']} • ${pkg['speed']}',
-                                style: GoogleFonts.poppins(fontSize: 14),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedPackageId = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _scheduleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Preferensi jadwal kunjungan (opsional)',
-                        prefixIcon: Icon(Icons.calendar_today_outlined),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _notesController,
-                      decoration: const InputDecoration(
-                        labelText: 'Catatan tambahan (opsional)',
-                        prefixIcon: Icon(Icons.notes_outlined),
-                      ),
-                      maxLines: 2,
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Foto Lokasi (Opsional)',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryColor,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Material(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                          child: InkWell(
-                            onTap: _pickLocationImage,
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              width: 96,
-                              height: 96,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                border:
-                                    Border.all(color: Colors.grey.shade300),
-                              ),
-                              child: _locationImage == null
-                                  ? Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(
-                                          Icons.add_a_photo_outlined,
-                                          size: 26,
-                                          color: Colors.grey,
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          'Pilih\nFoto',
-                                          textAlign: TextAlign.center,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 10,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                                  : ClipRRect(
-                                      borderRadius: BorderRadius.circular(16),
-                                      child: Image.file(
-                                        File(_locationImage!.path),
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Text(
-                            'Anda dapat mengunggah foto tampak depan rumah atau lokasi pemasangan untuk memudahkan teknisi.',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _submitting ? null : _submit,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: AppTheme.primaryColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: _submitting
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(
-                                'KIRIM PERMOHONAN',
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
                       ),
                     ),
                   ],
                 ),
+              ],
+            ),
+          ),
+          
+          // Content
+          Expanded(
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFF5F7FA), // Light background
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(30),
+                  topRight: Radius.circular(30),
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(30),
+                  topRight: Radius.circular(30),
+                ),
+                child: _hasActiveSubscription
+                    ? _buildAlreadyInstalledBody(context, bottomInset)
+                    : SingleChildScrollView(
+                        padding: EdgeInsets.fromLTRB(
+                          24,
+                          32,
+                          24,
+                          24 + bottomInset + 16,
+                        ),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Form Pemasangan WiFi',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primaryColor,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Isi data di bawah ini, tim kami akan segera menghubungi Anda untuk konfirmasi jadwal dan pengecekan jaringan.',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              if (_error != null)
+                                Container(
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFE5E5),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.error_outline, color: Color(0xFFB91C1C), size: 20),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _error!,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 13,
+                                            color: const Color(0xFFB91C1C),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              _buildSectionTitle('Data Calon Pelanggan'),
+                              const SizedBox(height: 12),
+                              _buildTextField(
+                                controller: _nameController,
+                                label: 'Nama Lengkap',
+                                icon: Icons.person_outline,
+                                validator: (value) => value == null || value.trim().isEmpty ? 'Nama tidak boleh kosong' : null,
+                              ),
+                              const SizedBox(height: 16),
+                              _buildTextField(
+                                controller: _phoneController,
+                                label: 'Nomor HP / WhatsApp',
+                                icon: Icons.phone_android_outlined,
+                                keyboardType: TextInputType.phone,
+                                validator: (value) => value == null || value.trim().isEmpty ? 'Nomor HP wajib diisi' : null,
+                              ),
+                              const SizedBox(height: 16),
+                              _buildTextField(
+                                controller: _emailController,
+                                label: 'Email (opsional)',
+                                icon: Icons.email_outlined,
+                              ),
+                              const SizedBox(height: 24),
+                              _buildSectionTitle('Alamat Pemasangan'),
+                              const SizedBox(height: 12),
+                              _buildTextField(
+                                controller: _addressController,
+                                label: 'Alamat lengkap (jalan, nomor rumah, RT/RW)',
+                                icon: Icons.location_on_outlined,
+                                maxLines: 3,
+                                validator: (value) => value == null || value.trim().isEmpty ? 'Alamat pemasangan wajib diisi' : null,
+                              ),
+                              const SizedBox(height: 24),
+                              _buildSectionTitle('Lokasi Google Maps'),
+                              const SizedBox(height: 12),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: _buildTextField(
+                                      controller: _mapLinkController,
+                                      label: 'Tempel link atau kata kunci lokasi',
+                                      icon: Icons.map_outlined,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    height: 56,
+                                    width: 56,
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primaryColor,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: IconButton(
+                                      onPressed: _updateMapPreview,
+                                      icon: const Icon(Icons.search, color: Colors.white),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              if (_currentMapUrl != null)
+                                Container(
+                                  height: 200,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: Colors.grey.shade300),
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: WebViewWidget(controller: _webViewController),
+                                ),
+                              const SizedBox(height: 24),
+                              _buildSectionTitle('Pilih Paket WiFi'),
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey.shade300),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: _selectedPackageId,
+                                    isExpanded: true,
+                                    hint: Text('Pilih paket yang diinginkan', style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600])),
+                                    items: _packages.map((pkg) => DropdownMenuItem<String>(
+                                      value: pkg['id'] as String,
+                                      child: Text('${pkg['name']} • ${pkg['speed']}', style: GoogleFonts.poppins(fontSize: 14)),
+                                    )).toList(),
+                                    onChanged: (value) => setState(() => _selectedPackageId = value),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              _buildSectionTitle('Tambahan'),
+                              const SizedBox(height: 12),
+                              _buildTextField(
+                                controller: _scheduleController,
+                                label: 'Preferensi jadwal kunjungan (opsional)',
+                                icon: Icons.calendar_today_outlined,
+                              ),
+                              const SizedBox(height: 16),
+                              _buildTextField(
+                                controller: _notesController,
+                                label: 'Catatan tambahan (opsional)',
+                                icon: Icons.notes_outlined,
+                                maxLines: 2,
+                              ),
+                              const SizedBox(height: 32),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: _submitting ? null : _submit,
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    backgroundColor: AppTheme.primaryColor,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    elevation: 0,
+                                  ),
+                                  child: _submitting
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                        )
+                                      : Text(
+                                          'Kirim Permohonan',
+                                          style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold),
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: GoogleFonts.poppins(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: const Color(0xFF64748B),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      validator: validator,
+      style: GoogleFonts.poppins(fontSize: 14),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.poppins(color: Colors.grey[500], fontSize: 14),
+        prefixIcon: Icon(icon, color: AppTheme.primaryColor.withOpacity(0.6), size: 20),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppTheme.primaryColor, width: 1.5),
+        ),
+      ),
     );
   }
 
