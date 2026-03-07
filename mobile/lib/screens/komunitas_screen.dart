@@ -403,14 +403,17 @@ class _KomunitasScreenState extends State<KomunitasScreen> {
                     style: GoogleFonts.poppins(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _statPill(Icons.people_alt_outlined, 'Online', '$_onlineCount'),
-                      const SizedBox(width: 8),
-                      _statPill(Icons.warning_amber_rounded, 'Gangguan', '${_posts.where((e) => e.type == 'Laporan Gangguan').length}'),
-                      const SizedBox(width: 8),
-                      _statPill(Icons.wifi_tethering_error_rounded, 'Terdampak', '${_posts.fold<int>(0, (sum, p) => sum + p.impactedCount)}'),
-                    ],
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _statPill(Icons.people_alt_outlined, 'Online', '$_onlineCount'),
+                        const SizedBox(width: 8),
+                        _statPill(Icons.warning_amber_rounded, 'Gangguan', '${_posts.where((e) => e.type == 'Laporan Gangguan').length}'),
+                        const SizedBox(width: 8),
+                        _statPill(Icons.wifi_tethering_error_rounded, 'Terdampak', '${_posts.fold<int>(0, (sum, p) => sum + p.impactedCount)}'),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Row(
