@@ -1,6 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 import '../utils/app_theme.dart';
+import '../providers/auth_provider.dart';
+import 'installation_screen.dart';
 
 class KomunitasScreen extends StatefulWidget {
   const KomunitasScreen({super.key});
@@ -10,6 +15,52 @@ class KomunitasScreen extends StatefulWidget {
 }
 
 class _KomunitasScreenState extends State<KomunitasScreen> {
+  Map<String, dynamic>? _activeSubscription;
+  bool _loadingSubscription = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadActiveSubscription();
+  }
+
+  Future<void> _loadActiveSubscription() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final token = auth.token;
+    if (token == null) {
+      setState(() => _loadingSubscription = false);
+      return;
+    }
+
+    try {
+      final uri = Uri.parse('${AuthProvider.baseUrl}/subscriptions?status=active');
+      final response = await http.get(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) {
+          final list = decoded.whereType<Map<String, dynamic>>().toList();
+          if (mounted) {
+            setState(() {
+              _activeSubscription = list.isNotEmpty ? list.first : null;
+              _loadingSubscription = false;
+            });
+          }
+        }
+      } else {
+        if (mounted) setState(() => _loadingSubscription = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingSubscription = false);
+    }
+  }
+
   final List<_CommunityPost> _posts = [
     _CommunityPost(
       id: 'post-1',
@@ -316,6 +367,80 @@ class _KomunitasScreenState extends State<KomunitasScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loadingSubscription) {
+      return Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_activeSubscription == null) {
+      return Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.05),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.lock_person_rounded,
+                    size: 64,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Komunitas Terbatas',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Fitur komunitas hanya tersedia bagi pelanggan yang sudah melakukan pemasangan WiFi Febri.net.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const InstallationScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Pasang Sekarang',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final filters = ['Semua', 'Gangguan', 'Info', 'Diskusi'];
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,

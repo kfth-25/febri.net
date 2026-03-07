@@ -102,7 +102,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (_) {}
   }
 
+  void _showRestrictionDialog(String feature) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Akses Dibatasi',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+        ),
+        content: Text(
+          'Anda harus melakukan pemasangan WiFi terlebih dahulu sebelum dapat menggunakan fitur $feature.',
+          style: GoogleFonts.poppins(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Tutup',
+              style: GoogleFonts.poppins(color: Colors.grey, fontWeight: FontWeight.w600),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const InstallationScreen()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(
+              'Pasang Sekarang',
+              style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showTopUpSheet() {
+    if (_activeSubscription == null) {
+      _showRestrictionDialog('Top Up Saldo');
+      return;
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -862,21 +909,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       Expanded(
                         child: _buildStatCard(
-                          icon: FontAwesomeIcons.download,
+                          icon: Icons.arrow_downward_rounded,
                           label: 'Download',
                           value: '45.2',
                           unit: 'GB',
-                          color: Colors.blue,
+                          color: const Color(0xFF0EA5E9),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: _buildStatCard(
-                          icon: FontAwesomeIcons.upload,
+                          icon: Icons.arrow_upward_rounded,
                           label: 'Upload',
                           value: '12.8',
                           unit: 'GB',
-                          color: Colors.orange,
+                          color: const Color(0xFFF59E0B),
                         ),
                       ),
                     ],
@@ -1018,14 +1065,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 16),
                   Wrap(
                     alignment: WrapAlignment.start,
-                    spacing: 16,
-                    runSpacing: 16,
+                    spacing: 24,
+                    runSpacing: 24,
                     children: [
                       _buildQuickAction(
                         context,
-                        Icons.speed,
+                        Icons.bolt_rounded,
                         'Speed Test',
-                        Colors.purple,
+                        const Color(0xFF4C86F9), // Biru
                         () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -1035,9 +1082,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       _buildQuickAction(
                         context,
-                        Icons.home_work_outlined,
+                        Icons.home_rounded,
                         'Pasang Baru',
-                        Colors.blue,
+                        const Color(0xFF16A34A), // Hijau
                         () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -1047,9 +1094,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       _buildQuickAction(
                         context,
-                        Icons.timeline_outlined,
+                        Icons.show_chart_rounded,
                         'Status',
-                        Colors.teal,
+                        const Color(0xFF9333EA), // Ungu
                         () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -1060,9 +1107,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       _buildQuickAction(
                         context,
-                        Icons.support_agent,
+                        Icons.headphones_rounded,
                         'Bantuan',
-                        Colors.green,
+                        const Color(0xFFEA580C), // Orange
                         () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -1070,12 +1117,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                       ),
-                      // Perangkat quick action dihapus sesuai permintaan
                       _buildQuickAction(
                         context,
-                        Icons.wifi_find,
+                        Icons.wifi_rounded,
                         'Spot WiFi',
-                        Colors.red,
+                        const Color(0xFFE11D48), // Pink/Merah
                         () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -1085,9 +1131,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       _buildQuickAction(
                         context,
-                        Icons.confirmation_number_outlined,
+                        Icons.credit_card_rounded,
                         'Voucher',
-                        Colors.deepPurple,
+                        const Color(0xFF0891B2), // Cyan/Biru Muda
                         () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -1097,15 +1143,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       _buildQuickAction(
                         context,
-                        Icons.chat_bubble_outline,
+                        Icons.chat_bubble_outline_rounded,
                         'Chat',
-                        Colors.teal,
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ChatScreen(),
-                          ),
-                        ),
+                        const Color(0xFF7C3AED), // Ungu Terang
+                        () {
+                          if (_activeSubscription == null) {
+                            _showRestrictionDialog('Chat');
+                            return;
+                          }
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ChatScreen(),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
@@ -1273,95 +1325,77 @@ class _DashboardScreenState extends State<DashboardScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: LinearGradient(
-                colors: [color.withOpacity(0.18), color.withOpacity(0.06)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
             ),
-            alignment: Alignment.center,
-            child: FaIcon(icon, color: color, size: 20),
+            child: Icon(icon, color: color, size: 18),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
+          const SizedBox(height: 12),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              color: Colors.grey[600],
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                value,
+                style: GoogleFonts.poppins(
+                  color: AppTheme.primaryColor,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  unit,
                   style: GoogleFonts.poppins(
-                    color: Colors.grey[700],
+                    color: Colors.grey[600],
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      value,
-                      style: GoogleFonts.poppins(
-                        color: AppTheme.primaryColor,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 3),
-                      child: Text(
-                        unit,
-                        style: GoogleFonts.poppins(
-                          color: Colors.grey[700],
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(2),
+            ),
+            child: FractionallySizedBox(
+              widthFactor: 0.6,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                const SizedBox(height: 8),
-                Container(
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: FractionallySizedBox(
-                      widthFactor: 0.5,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [color, color.withOpacity(0.6)],
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ],
@@ -1375,35 +1409,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onTap: onTap,
       child: Column(
         children: [
-          Material(
-            color: color,
-            borderRadius: BorderRadius.circular(14),
-            elevation: 0,
-            child: InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(14),
-              splashColor: Colors.white.withOpacity(0.2),
-              highlightColor: Colors.white.withOpacity(0.1),
-              child: SizedBox(
-                width: 64,
-                height: 64,
-                child: Center(
-                  child: Icon(
-                    icon,
-                    size: 24,
-                    color: Colors.white,
-                  ),
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-              ),
+              ],
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              icon,
+              size: 26,
+              color: color,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             label,
             style: GoogleFonts.poppins(
               fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.primaryColor.withOpacity(0.8),
             ),
           ),
         ],
