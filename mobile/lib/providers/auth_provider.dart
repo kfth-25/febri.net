@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/fcm_service.dart';
 
 class AuthProvider with ChangeNotifier {
-  static const String _baseUrl = 'http://192.168.1.4:8000/api';
+  static const String _baseUrl = 'http://192.168.1.5:8000/api';
 
   bool _isAuthenticated = false;
   bool _isLoading = true;

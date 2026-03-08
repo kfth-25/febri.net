@@ -1,18 +1,16 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'dart:io';
+
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
+import '../widgets/grid_background_painter.dart';
+import 'dashboard_screen.dart'; // For navigation back to home
 
 class InstallationScreen extends StatefulWidget {
   final String? preselectedPackageId;
-
   const InstallationScreen({super.key, this.preselectedPackageId});
 
   @override
@@ -20,561 +18,829 @@ class InstallationScreen extends StatefulWidget {
 }
 
 class _InstallationScreenState extends State<InstallationScreen> {
-  final _formKey = GlobalKey<FormState>();
+  int _currentStep = 1;
+  bool _isSuccess = false;
+  String _regNumber = '';
+
+  // Form Controllers
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _ktpController = TextEditingController();
   final _emailController = TextEditingController();
   final _addressController = TextEditingController();
-  final _scheduleController = TextEditingController();
-  final _notesController = TextEditingController();
-  final _mapLinkController = TextEditingController();
+  final _rtController = TextEditingController();
+  final _rwController = TextEditingController();
+  final _landmarkController = TextEditingController();
+  String? _selectedKelurahan;
 
-  String? _selectedPackageId;
-  bool _submitting = false;
-  String? _error;
-  String? _currentMapUrl;
-  late final WebViewController _webViewController;
-  XFile? _locationImage;
-  bool _hasActiveSubscription = false;
+  // Selection State
+  late String _selectedPackageId;
+  String _selectedPaymentId = 'febripay';
+
+  final List<String> _kelurahanList = [
+    'Argasunya',
+    'Harjamukti',
+    'Kecapi',
+    'Larangan',
+    'Kalijaga',
+    'Sunyaragi',
+  ];
 
   final List<Map<String, dynamic>> _packages = [
     {
-      'id': '1',
+      'id': 'starter',
       'name': 'Starter Home',
       'speed': '20 Mbps',
-      'price': 250000,
+      'price': 'Rp 90rb',
+      'price_full': 'Rp 90.000',
+      'desc': '1-2 device · browsing & HD',
+      'badge': null,
     },
     {
-      'id': '2',
+      'id': 'family',
       'name': 'Family Entertainment',
       'speed': '50 Mbps',
-      'price': 350000,
+      'price': 'Rp 150rb',
+      'price_full': 'Rp 150.000',
+      'desc': '4-6 device · 4K + gaming',
+      'badge': '⭐',
     },
     {
-      'id': '3',
-      'name': 'Gamer & Creator',
+      'id': 'turbo',
+      'name': 'Turbo',
       'speed': '100 Mbps',
-      'price': 550000,
-    },
-    {
-      'id': '4',
-      'name': 'Ultra Speed',
-      'speed': '200 Mbps',
-      'price': 850000,
+      'price': 'Rp 200rb',
+      'price_full': 'Rp 200.000',
+      'desc': '10+ device · bisnis',
+      'badge': null,
     },
   ];
 
   @override
-  void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
-    _emailController.dispose();
-    _addressController.dispose();
-    _scheduleController.dispose();
-    _notesController.dispose();
-    _mapLinkController.dispose();
-    super.dispose();
-  }
-  @override
   void initState() {
     super.initState();
-    _webViewController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted);
-    _selectedPackageId = widget.preselectedPackageId;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkActiveSubscription();
-    });
-  }
-
-  Future<void> _checkActiveSubscription() async {
+    _selectedPackageId = widget.preselectedPackageId ?? 'family';
+    // Pre-fill name if available
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final token = auth.token;
-    if (token == null) return;
-
-    // start checking active subscription
-
-    try {
-      final uri =
-          Uri.parse('${AuthProvider.baseUrl}/subscriptions?status=active');
-      final response = await http.get(
-        uri,
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final decoded = jsonDecode(response.body);
-        if (decoded is List && decoded.isNotEmpty && mounted) {
-          setState(() {
-            _hasActiveSubscription = true;
-          });
-        }
-      }
-    } catch (_) {
-      if (!mounted) return;
-    } finally {
-      // done checking
+    if (auth.user != null) {
+      _nameController.text = auth.user!['name'] ?? '';
+      _emailController.text = auth.user!['email'] ?? '';
     }
   }
 
-  void _updateMapPreview() {
-    final raw = _mapLinkController.text.trim();
-    if (raw.isEmpty) {
+  void _nextStep() {
+    if (_currentStep < 3) {
       setState(() {
-        _currentMapUrl = null;
+        _currentStep++;
       });
-      return;
-    }
-    Uri? uri;
-    try {
-      uri = Uri.parse(raw);
-    } catch (_) {
-      uri = null;
-    }
-    if (uri == null || !uri.hasScheme) {
-      try {
-        uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(raw)}');
-      } catch (_) {
-        uri = null;
-      }
-    }
-    if (uri != null) {
-      _webViewController.loadRequest(uri);
-      setState(() {
-        _currentMapUrl = uri.toString();
-      });
+    } else {
+      _submitForm();
     }
   }
 
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    if (_selectedPackageId == null) {
+  void _prevStep() {
+    if (_currentStep > 1) {
       setState(() {
-        _error = 'Silakan pilih voucher WiFi terlebih dahulu.';
+        _currentStep--;
       });
-      return;
+    } else {
+      Navigator.pop(context);
     }
+  }
 
+  void _submitForm() {
+    // Simulate API call
     setState(() {
-      _submitting = true;
-      _error = null;
+      _regNumber = 'FBR-2026-${Random().nextInt(9000) + 1000}';
+      _isSuccess = true;
     });
-
-    try {
-      await Future.delayed(const Duration(seconds: 1));
-
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      final user = auth.user;
-      final mapLink = _currentMapUrl ?? _mapLinkController.text.trim();
-
-      final prefs = await SharedPreferences.getInstance();
-      final existingRaw = prefs.getString('installation_requests');
-      List<dynamic> list = [];
-      if (existingRaw != null && existingRaw.isNotEmpty) {
-        try {
-          final decoded = jsonDecode(existingRaw);
-          if (decoded is List) {
-            list = decoded;
-          }
-        } catch (_) {}
-      }
-
-      final int newId = list.length + 1;
-      final nowDate = DateTime.now();
-      final now = nowDate.toIso8601String();
-
-      final request = {
-        'id': newId,
-        'created_at': now,
-        'status': 'pending',
-        'package_id': _selectedPackageId,
-        'name': _nameController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'email': _emailController.text.trim(),
-        'address': _addressController.text.trim(),
-        'schedule': _scheduleController.text.trim(),
-        'notes': _notesController.text.trim(),
-        'map_link': mapLink,
-        'photo_path': _locationImage?.path,
-        'user_id': user?['id'],
-        'user_email': user?['email'],
-      };
-
-      list.add(request);
-      await prefs.setString('installation_requests', jsonEncode(list));
-
-      final selectedPackage = _packages
-          .firstWhere((p) => p['id'].toString() == _selectedPackageId);
-      final monthLabel = '${_monthName(nowDate.month)} ${nowDate.year}';
-      final due = nowDate.add(const Duration(days: 7));
-      final dueLabel =
-          '${due.day} ${_monthName(due.month)} ${due.year}';
-
-      final unpaidBill = {
-        'id': DateTime.now().millisecondsSinceEpoch,
-        'month': monthLabel,
-        'dueDate': dueLabel,
-        'amount': selectedPackage['price'],
-        'wifi_package_id': selectedPackage['id'],
-        'status': 'Belum Bayar',
-        'details': selectedPackage['name'],
-        'user_id': user?['id'],
-        'user_email': user?['email'],
-      };
-
-      await prefs.setString('unpaid_bill', jsonEncode(unpaidBill));
-
-      if (!mounted) return;
-
-      final locationInfo = mapLink.isNotEmpty ? mapLink : '-';
-
-      final snackBar = SnackBar(
-        content: Text(
-          'Permohonan pemasangan berhasil dikirim. Link lokasi: $locationInfo',
-          style: GoogleFonts.poppins(),
-        ),
-        backgroundColor: AppTheme.primaryColor,
-      );
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-
-      _formKey.currentState!.reset();
-      setState(() {
-        _selectedPackageId = null;
-        _mapLinkController.clear();
-        _currentMapUrl = null;
-        _locationImage = null;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'Gagal mengirim permohonan. Silakan coba lagi.';
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _submitting = false;
-        });
-      }
-    }
-  }
-
-  String _monthName(int month) {
-    const names = [
-      '',
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'Mei',
-      'Jun',
-      'Jul',
-      'Agu',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Des',
-    ];
-    if (month < 1 || month > 12) return '';
-    return names[month];
-  }
-
-  Future<void> _pickLocationImage() async {
-    try {
-      final picker = ImagePicker();
-      final picked = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1600,
-        imageQuality: 80,
-      );
-      if (picked != null) {
-        setState(() {
-          _locationImage = picked;
-        });
-      }
-    } catch (_) {
-      if (!mounted) return;
-      final snackBar = SnackBar(
-        content: Text(
-          'Gagal membuka galeri. Pastikan izin akses foto sudah diizinkan.',
-          style: GoogleFonts.poppins(),
-        ),
-        backgroundColor: Colors.red,
-      );
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).padding.bottom;
-    final auth = Provider.of<AuthProvider>(context);
-    final user = auth.user;
+    // If user has active subscription, we might want to show a different screen or blocking dialog.
+    // But for "Pasang Baru", it might be allowed for adding a second line or upgrade.
+    // For now, adhering to the UI request.
 
-    if (user != null && _nameController.text.isEmpty) {
-      _nameController.text = user['name']?.toString() ?? '';
-      _emailController.text = user['email']?.toString() ?? '';
+    if (_isSuccess) {
+      return _buildSuccessScreen();
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0B1221), // Dark background for top
-      body: Column(
+      backgroundColor: const Color(0xFF0B1221),
+      body: Stack(
         children: [
-          // Custom Header
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 50, 20, 30),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    shape: BoxShape.circle,
+          // Gradient Background
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFF0B1221),
+                    Color(0xFF162033),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Column(
+            children: [
+              // Header
+              _buildHeader(),
+              
+              // Body
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF5F7FA),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
+                    ),
                   ),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white70, size: 18),
-                    onPressed: () => Navigator.maybePop(context),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
+                    ),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          if (_currentStep == 1) _buildStep1(),
+                          if (_currentStep == 2) _buildStep2(),
+                          if (_currentStep == 3) _buildStep3(),
+                          const SizedBox(height: 24),
+                          // Navigation Buttons
+                          Row(
+                            children: [
+                              if (_currentStep > 1)
+                                Expanded(
+                                  flex: 1,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 12),
+                                    child: OutlinedButton(
+                                      onPressed: _prevStep,
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        side: BorderSide(color: Colors.grey[300]!),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        '← Kembali',
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              Expanded(
+                                flex: 2,
+                                child: ElevatedButton(
+                                  onPressed: _nextStep,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primaryColor,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: Text(
+                                    _currentStep == 3 ? 'Kirim Pendaftaran ✓' : 'Lanjut →',
+                                    style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Column(
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 20,
+        left: 24,
+        right: 24,
+        bottom: 24,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              InkWell(
+                onTap: () => Navigator.pop(context),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'FEBRI.NET',
+                      'LAYANAN BARU',
                       style: GoogleFonts.poppins(
-                        color: Colors.white54,
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        letterSpacing: 1,
+                        color: Colors.white38,
+                        letterSpacing: 1.0,
                       ),
                     ),
                     Text(
                       'Pasang Baru',
                       style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
                         color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'ESTIMASI',
+                      style: GoogleFonts.poppins(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white38,
+                      ),
+                    ),
+                    Text(
+                      '1-3 hari',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Langkah $_currentStep dari 3',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white38,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: List.generate(3, (index) {
+              return Expanded(
+                child: Container(
+                  height: 4,
+                  margin: EdgeInsets.only(right: index < 2 ? 6 : 0),
+                  decoration: BoxDecoration(
+                    color: index < _currentStep 
+                        ? AppTheme.primaryColor 
+                        : Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // STEP 1: Data Diri
+  Widget _buildStep1() {
+    return Column(
+      children: [
+        _buildFormCard(
+          title: 'Data Diri',
+          icon: Icons.person_outline,
+          subtitle: 'Isi data lengkap untuk pendaftaran layanan baru',
+          children: [
+            _buildInputLabel('Nama Lengkap'),
+            _buildTextField(controller: _nameController, hint: 'Contoh: Budi Santoso'),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildInputLabel('No. HP / WhatsApp'),
+                      _buildTextField(controller: _phoneController, hint: '08xx-xxxx', keyboardType: TextInputType.phone),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildInputLabel('Nomor KTP'),
+                      _buildTextField(controller: _ktpController, hint: '16 digit', keyboardType: TextInputType.number),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildInputLabel('Email'),
+            _buildTextField(controller: _emailController, hint: 'email@contoh.com', keyboardType: TextInputType.emailAddress),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _buildFormCard(
+          title: 'Alamat Pemasangan',
+          icon: Icons.home_outlined,
+          subtitle: 'Alamat tempat WiFi akan dipasang',
+          children: [
+            _buildInputLabel('Kelurahan / Desa'),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF2F4F9),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.transparent),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedKelurahan,
+                  hint: Text('--- Pilih kelurahan --', style: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 13)),
+                  isExpanded: true,
+                  icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[600]),
+                  items: _kelurahanList.map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value, style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87)),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) {
+                    setState(() {
+                      _selectedKelurahan = newValue;
+                    });
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildInputLabel('RT'),
+                      _buildTextField(controller: _rtController, hint: '00', keyboardType: TextInputType.number),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildInputLabel('RW'),
+                      _buildTextField(controller: _rwController, hint: '00', keyboardType: TextInputType.number),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildInputLabel('Alamat Lengkap'),
+            _buildTextField(controller: _addressController, hint: 'Jl. nama jalan, no. rumah...'),
+            const SizedBox(height: 16),
+            _buildInputLabel('Patokan (opsional)'),
+            _buildTextField(controller: _landmarkController, hint: 'Contoh: Dekat masjid Al-Falah'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // STEP 2: Pilih Paket
+  Widget _buildStep2() {
+    return Column(
+      children: [
+        _buildFormCard(
+          title: 'Pilih Paket',
+          icon: Icons.bolt,
+          subtitle: 'Pilih paket yang sesuai kebutuhanmu',
+          children: _packages.map((pkg) {
+            final isSelected = _selectedPackageId == pkg['id'];
+            return GestureDetector(
+              onTap: () => setState(() => _selectedPackageId = pkg['id']),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppTheme.primaryColor.withOpacity(0.05) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isSelected ? AppTheme.primaryColor : const Color(0xFFE4E9F4),
+                    width: isSelected ? 1.5 : 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected ? AppTheme.primaryColor : Colors.grey[300]!,
+                          width: isSelected ? 6 : 1.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                pkg['name'],
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  color: const Color(0xFF0A0F1E),
+                                ),
+                              ),
+                              if (pkg['badge'] != null) ...[
+                                const SizedBox(width: 6),
+                                Text(pkg['badge'], style: const TextStyle(fontSize: 12)),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            pkg['desc'],
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          pkg['price'],
+                          style: GoogleFonts.jetBrainsMono(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                        Text(
+                          '/bulan',
+                          style: GoogleFonts.poppins(
+                            fontSize: 10,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 20),
+        _buildFormCard(
+          title: 'Metode Pembayaran',
+          icon: Icons.lock_outline,
+          subtitle: 'Biaya pasang awal + bulan pertama',
+          children: [
+            _buildPaymentOption('febripay', 'FebriPay', 'Saldo: Rp 85.500'),
+            _buildPaymentOption('qris', 'Transfer / QRIS', 'Konfirmasi manual'),
+            _buildPaymentOption('cash', 'Bayar ke Teknisi', 'Tunai saat pemasangan'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPaymentOption(String id, String title, String subtitle) {
+    final isSelected = _selectedPaymentId == id;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedPaymentId = id),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primaryColor.withOpacity(0.05) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppTheme.primaryColor : const Color(0xFFE4E9F4),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? AppTheme.primaryColor : Colors.grey[300]!,
+                  width: isSelected ? 6 : 1.5,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: const Color(0xFF0A0F1E),
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // STEP 3: Konfirmasi
+  Widget _buildStep3() {
+    final selectedPkg = _packages.firstWhere((p) => p['id'] == _selectedPackageId);
+    
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0B1221),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'RINGKASAN PESANAN',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white38,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildSummaryRow('Nama', _nameController.text.isNotEmpty ? _nameController.text : '-'),
+              _buildSummaryRow('No. HP', _phoneController.text.isNotEmpty ? _phoneController.text : '-'),
+              _buildSummaryRow('Kelurahan', _selectedKelurahan ?? '-'),
+              _buildSummaryRow('Paket', selectedPkg['name'] + ' ' + selectedPkg['speed']),
+              const Divider(color: Colors.white12, height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Total Bayar',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white70,
+                      fontSize: 13,
+                    ),
+                  ),
+                  Text(
+                    selectedPkg['price_full'],
+                    style: GoogleFonts.jetBrainsMono(
+                      color: AppTheme.primaryColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        _buildFormCard(
+          title: 'Proses Pemasangan',
+          icon: Icons.timeline,
+          subtitle: 'Estimasi selesai 1–3 hari kerja',
+          children: [
+            _buildTimelineItem(
+              icon: Icons.check,
+              color: const Color(0xFF10B981),
+              title: 'Pendaftaran Diterima',
+              desc: 'Data masuk sistem, sedang diproses.',
+              isFirst: true,
+            ),
+            _buildTimelineItem(
+              icon: Icons.home_work_outlined,
+              color: const Color(0xFF3B82F6),
+              title: 'Survey Lokasi',
+              desc: 'Tim kami menghubungimu untuk konfirmasi.',
+              tag: 'Hari ke-1',
+            ),
+            _buildTimelineItem(
+              icon: Icons.build_outlined,
+              color: const Color(0xFFF59E0B),
+              title: 'Pemasangan',
+              desc: 'Teknisi datang dan pasang perangkat WiFi.',
+              tag: 'Hari ke-2',
+            ),
+            _buildTimelineItem(
+              icon: Icons.wifi,
+              color: AppTheme.primaryColor,
+              title: 'WiFi Aktif 🎉',
+              desc: 'Internet siap! Akun Febri.net langsung aktif.',
+              tag: 'Hari ke-3',
+              isLast: true,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              color: Colors.white38,
+              fontSize: 13,
+            ),
+          ),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimelineItem({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String desc,
+    String? tag,
+    bool isFirst = false,
+    bool isLast = false,
+  }) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 30,
+            child: Column(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: 14),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      color: Colors.grey[200],
+                    ),
+                  ),
               ],
             ),
           ),
-          
-          // Content
+          const SizedBox(width: 14),
           Expanded(
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFFF5F7FA), // Light background
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
-                ),
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
-                ),
-                child: _hasActiveSubscription
-                    ? _buildAlreadyInstalledBody(context, bottomInset)
-                    : SingleChildScrollView(
-                        padding: EdgeInsets.fromLTRB(
-                          24,
-                          32,
-                          24,
-                          24 + bottomInset + 16,
-                        ),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Form Pemasangan WiFi',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primaryColor,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Isi data di bawah ini, tim kami akan segera menghubungi Anda untuk konfirmasi jadwal dan pengecekan jaringan.',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 13,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              if (_error != null)
-                                Container(
-                                  margin: const EdgeInsets.only(bottom: 16),
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFE5E5),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.error_outline, color: Color(0xFFB91C1C), size: 20),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          _error!,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 13,
-                                            color: const Color(0xFFB91C1C),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              _buildSectionTitle('Data Calon Pelanggan'),
-                              const SizedBox(height: 12),
-                              _buildTextField(
-                                controller: _nameController,
-                                label: 'Nama Lengkap',
-                                icon: Icons.person_outline,
-                                validator: (value) => value == null || value.trim().isEmpty ? 'Nama tidak boleh kosong' : null,
-                              ),
-                              const SizedBox(height: 16),
-                              _buildTextField(
-                                controller: _phoneController,
-                                label: 'Nomor HP / WhatsApp',
-                                icon: Icons.phone_android_outlined,
-                                keyboardType: TextInputType.phone,
-                                validator: (value) => value == null || value.trim().isEmpty ? 'Nomor HP wajib diisi' : null,
-                              ),
-                              const SizedBox(height: 16),
-                              _buildTextField(
-                                controller: _emailController,
-                                label: 'Email (opsional)',
-                                icon: Icons.email_outlined,
-                              ),
-                              const SizedBox(height: 24),
-                              _buildSectionTitle('Alamat Pemasangan'),
-                              const SizedBox(height: 12),
-                              _buildTextField(
-                                controller: _addressController,
-                                label: 'Alamat lengkap (jalan, nomor rumah, RT/RW)',
-                                icon: Icons.location_on_outlined,
-                                maxLines: 3,
-                                validator: (value) => value == null || value.trim().isEmpty ? 'Alamat pemasangan wajib diisi' : null,
-                              ),
-                              const SizedBox(height: 24),
-                              _buildSectionTitle('Lokasi Google Maps'),
-                              const SizedBox(height: 12),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: _buildTextField(
-                                      controller: _mapLinkController,
-                                      label: 'Tempel link atau kata kunci lokasi',
-                                      icon: Icons.map_outlined,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    height: 56,
-                                    width: 56,
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.primaryColor,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: IconButton(
-                                      onPressed: _updateMapPreview,
-                                      icon: const Icon(Icons.search, color: Colors.white),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              if (_currentMapUrl != null)
-                                Container(
-                                  height: 200,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: Colors.grey.shade300),
-                                  ),
-                                  clipBehavior: Clip.antiAlias,
-                                  child: WebViewWidget(controller: _webViewController),
-                                ),
-                              const SizedBox(height: 24),
-                              _buildSectionTitle('Pilih Paket WiFi'),
-                              const SizedBox(height: 12),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.grey.shade300),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    value: _selectedPackageId,
-                                    isExpanded: true,
-                                    hint: Text('Pilih paket yang diinginkan', style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600])),
-                                    items: _packages.map((pkg) => DropdownMenuItem<String>(
-                                      value: pkg['id'] as String,
-                                      child: Text('${pkg['name']} • ${pkg['speed']}', style: GoogleFonts.poppins(fontSize: 14)),
-                                    )).toList(),
-                                    onChanged: (value) => setState(() => _selectedPackageId = value),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              _buildSectionTitle('Tambahan'),
-                              const SizedBox(height: 12),
-                              _buildTextField(
-                                controller: _scheduleController,
-                                label: 'Preferensi jadwal kunjungan (opsional)',
-                                icon: Icons.calendar_today_outlined,
-                              ),
-                              const SizedBox(height: 16),
-                              _buildTextField(
-                                controller: _notesController,
-                                label: 'Catatan tambahan (opsional)',
-                                icon: Icons.notes_outlined,
-                                maxLines: 2,
-                              ),
-                              const SizedBox(height: 32),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: _submitting ? null : _submit,
-                                  style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    backgroundColor: AppTheme.primaryColor,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                    elevation: 0,
-                                  ),
-                                  child: _submitting
-                                      ? const SizedBox(
-                                          height: 20,
-                                          width: 20,
-                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                        )
-                                      : Text(
-                                          'Kirim Permohonan',
-                                          style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold),
-                                        ),
-                                ),
-                              ),
-                            ],
-                          ),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        title,
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          color: const Color(0xFF0A0F1E),
                         ),
                       ),
+                      if (tag != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            tag,
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    desc,
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -583,142 +849,203 @@ class _InstallationScreenState extends State<InstallationScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: GoogleFonts.poppins(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: const Color(0xFF64748B),
+  // HELPER WIDGETS
+  Widget _buildFormCard({
+    required String title,
+    required IconData icon,
+    required String subtitle,
+    required List<Widget> children,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: AppTheme.primaryColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0A0F1E),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: Colors.grey[500],
+            ),
+          ),
+          const SizedBox(height: 20),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        label,
+        style: GoogleFonts.poppins(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF4B5563),
+        ),
       ),
     );
   }
 
   Widget _buildTextField({
     required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    int maxLines = 1,
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
+    required String hint,
+    TextInputType keyboardType = TextInputType.text,
   }) {
-    return TextFormField(
-      controller: controller,
-      maxLines: maxLines,
-      keyboardType: keyboardType,
-      validator: validator,
-      style: GoogleFonts.poppins(fontSize: 14),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: GoogleFonts.poppins(color: Colors.grey[500], fontSize: 14),
-        prefixIcon: Icon(icon, color: AppTheme.primaryColor.withOpacity(0.6), size: 20),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppTheme.primaryColor, width: 1.5),
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F4F9),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: GoogleFonts.poppins(color: Colors.grey[400]),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),
     );
   }
 
-  Widget _buildAlreadyInstalledBody(
-      BuildContext context, double bottomInset) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        24,
-        24,
-        24,
-        24 + bottomInset + 16,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SizedBox(height: 40),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
+  Widget _buildSuccessScreen() {
+    final selectedPkg = _packages.firstWhere((p) => p['id'] == _selectedPackageId);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF0B1221),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'NO. REGISTRASI',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white38,
+                  letterSpacing: 1.2,
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE0F7E9),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check_circle_outline,
-                    size: 40,
-                    color: Color(0xFF16A34A),
-                  ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _regNumber,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.primaryColor,
+                  letterSpacing: 1.0,
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Sudah Terpasang',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
-                  ),
+              ),
+              const SizedBox(height: 40),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Akun ini sudah memiliki pemasangan WiFi aktif. Pengajuan pemasangan baru hanya dapat dilakukan melalui admin.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    color: Colors.grey[700],
-                  ),
+                child: Icon(Icons.check, color: AppTheme.primaryColor, size: 40),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Pendaftaran Berhasil!',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
                 ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).maybePop();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Tim Febri.net akan menghubungi kamu dalam 1×24 jam untuk konfirmasi survey & jadwal pemasangan.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: Colors.white70,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 40),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                ),
+                child: Column(
+                  children: [
+                    _buildSummaryRow('Nama', _nameController.text),
+                    _buildSummaryRow('Paket', selectedPkg['name']),
+                    _buildSummaryRow('Estimasi Aktif', '1-3 hari kerja'),
+                    _buildSummaryRow('CS WhatsApp', '0812-3456-7000'),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(), // Back to Home
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF0B1221),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Text(
-                      'Kembali',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600,
-                      ),
+                  ),
+                  child: Text(
+                    'Kembali ke Home',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

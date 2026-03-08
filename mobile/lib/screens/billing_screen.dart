@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/services.dart';
 import '../utils/app_theme.dart';
+import '../widgets/grid_background_painter.dart';
 
 class BillingScreen extends StatefulWidget {
   const BillingScreen({super.key});
@@ -32,13 +33,30 @@ class _BillingScreenState extends State<BillingScreen> with SingleTickerProvider
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0B1221), // Dark background for top part
-      body: Column(
+      body: Stack(
         children: [
-          // Custom AppBar area
-          SafeArea(
-            bottom: false,
+          // Gradient Background
+          Positioned.fill(
             child: Container(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFF0B1221),
+                    Color(0xFF162033),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Column(
+            children: [
+              // Custom AppBar area
+              SafeArea(
+                bottom: false,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -202,6 +220,8 @@ class _BillingScreenState extends State<BillingScreen> with SingleTickerProvider
             ),
           ),
         ],
+      ),
+      ],
       ),
     );
   }
