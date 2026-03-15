@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/fcm_service.dart';
+import '../services/socket_service.dart';
 
 class AuthProvider with ChangeNotifier {
   static const String _baseUrl = 'http://192.168.1.5:8000/api';
@@ -31,6 +32,15 @@ class AuthProvider with ChangeNotifier {
     if (_token != null && userJson != null) {
       _isAuthenticated = true;
       _user = jsonDecode(userJson) as Map<String, dynamic>;
+
+      try {
+        final dynamic uid = _user!['id'];
+        if (uid != null) {
+          SocketService().connect('user-$uid');
+        } else if (_token == 'mock_token_offline') {
+          SocketService().connect('user-mock');
+        }
+      } catch (_) {}
     }
 
     _isLoading = false;
@@ -125,6 +135,13 @@ class AuthProvider with ChangeNotifier {
           await prefs.setString('token', accessToken);
           await prefs.setString('user', jsonEncode(userData));
 
+          try {
+            final dynamic uid = userData['id'];
+            if (uid != null) {
+              SocketService().connect('user-$uid');
+            }
+          } catch (_) {}
+
           _isLoading = false;
           notifyListeners();
           return true;
@@ -161,6 +178,10 @@ class AuthProvider with ChangeNotifier {
           await _registerDeviceToken('local-only', platform: 'android');
         } catch (_) {}
       }
+
+      try {
+        SocketService().connect('user-mock');
+      } catch (_) {}
 
       _isLoading = false;
       notifyListeners();
@@ -212,6 +233,10 @@ class AuthProvider with ChangeNotifier {
 
       await prefs.remove('token');
       await prefs.remove('user');
+
+      try {
+        SocketService().disconnect(_user?['id'] != null ? 'user-${_user!['id']}' : 'user-mock');
+      } catch (_) {}
 
       notifyListeners();
     }

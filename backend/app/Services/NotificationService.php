@@ -38,6 +38,15 @@ class NotificationService
             ],
             'data' => array_merge($data, ['type' => $type]),
         ]);
+
+        // Broadcast to Socket.io (real-time in-app)
+        $this->postSocketIo('user-' . $userId, 'announcement', [
+            'title' => $title,
+            'body' => $body,
+            ...$data,
+            'type' => $type,
+        ]);
+
         $this->log($userId, null, $type, 'push', $title, $body, 'sent', null, $result['status'] ?? null, $result['body'] ?? null);
         return $result;
     }
@@ -52,6 +61,16 @@ class NotificationService
             ],
             'data' => $data,
         ]);
+
+        // Broadcast global Socket.io if topic is all_users
+        if ($topic === 'all_users') {
+            $this->postSocketIo(null, 'announcement', [
+                'title' => $title,
+                'body' => $body,
+                ...$data,
+            ]);
+        }
+
         $this->log(null, $topic, $data['type'] ?? 'general', 'push', $title, $body, 'sent', null, $result['status'] ?? null, $result['body'] ?? null);
         return $result;
     }
@@ -84,6 +103,19 @@ class NotificationService
         $status = method_exists($resp, 'status') ? $resp->status() : null;
         $body = method_exists($resp, 'json') ? $resp->json() : json_decode($resp->body(), true);
         return ['status' => $status, 'body' => $body];
+    }
+
+    protected function postSocketIo(?string $channel, string $event, array $data): void
+    {
+        try {
+            Http::post('http://127.0.0.1:3000/api/broadcast', [
+                'channel' => $channel,
+                'event' => $event,
+                'data' => $data,
+            ]);
+        } catch (\Throwable $e) {
+            // Ignore socket io failure so FCM can still proceed
+        }
     }
 
     protected function isAllowedByPreference(int $userId, string $type): bool
