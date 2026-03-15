@@ -6,6 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
+import '../providers/notification_provider.dart';
 import 'notification_service.dart';
 import '../screens/main_screen.dart';
 import '../screens/installation_status_screen.dart';
@@ -32,6 +33,7 @@ class FcmService {
 
   bool _initialized = false;
   GlobalKey<NavigatorState>? _navigatorKey;
+  NotificationProvider? _notifProvider;
 
   Future<void> init() async {
     if (_initialized) return;
@@ -48,6 +50,15 @@ class FcmService {
             body: notification.body ?? '',
             payload: jsonEncode(message.data),
           );
+          final appNotif = AppNotification(
+            title: notification.title ?? 'Notifikasi',
+            body: notification.body ?? '',
+            type: message.data['type']?.toString(),
+            deeplink: message.data['deeplink']?.toString(),
+            ts: DateTime.now().toIso8601String(),
+          );
+          _notifProvider?.addNotification(appNotif);
+          // Also save to prefs for persistence
           await _saveRecentNotification(
             title: notification.title ?? 'Notifikasi',
             body: notification.body ?? '',
@@ -114,6 +125,10 @@ class FcmService {
 
   void attachNavigator(GlobalKey<NavigatorState> key) {
     _navigatorKey = key;
+  }
+
+  void attachNotificationProvider(NotificationProvider provider) {
+    _notifProvider = provider;
   }
 
   void _handleOpenedMessage(RemoteMessage message) {

@@ -10,6 +10,7 @@ import Orders from './pages/Orders/Orders';
 import Issues from './pages/Issues/Issues';
 import Technicians from './pages/Technicians/Technicians';
 import InstallationRegistration from './pages/Medicines/Medicines';
+import Notifications from './pages/Notifications/Notifications';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -72,6 +73,14 @@ function App() {
             element={
               <PrivateRoute>
                 <InstallationRegistration />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <PrivateRoute>
+                <Notifications />
               </PrivateRoute>
             }
           />

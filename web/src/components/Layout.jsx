@@ -28,7 +28,8 @@ import {
   Person as PersonIcon,
   ReportProblem as ReportIcon,
   Engineering as EngineeringIcon,
-  AddLocationAlt as AddLocationAltIcon
+  AddLocationAlt as AddLocationAltIcon,
+  Notifications as NotificationsIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { logout } from '../services/auth';
@@ -65,7 +66,8 @@ const Layout = ({ children, title = 'Dashboard Overview' }) => {
     { text: 'Layanan', icon: <WifiIcon />, path: '/packages' },
     { text: 'Pesanan', icon: <AssignmentIcon />, path: '/orders' },
     { text: 'Gangguan', icon: <ReportIcon />, path: '/issues' },
-    { text: 'Pemasangan', icon: <AddLocationAltIcon />, path: '/installations' }
+    { text: 'Pemasangan', icon: <AddLocationAltIcon />, path: '/installations' },
+    { text: 'Notifikasi', icon: <NotificationsIcon />, path: '/notifications' },
   ];
 
   if (user.role === 'admin') {

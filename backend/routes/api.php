@@ -11,6 +11,7 @@ use App\Http\Controllers\VoucherTransactionController;
 use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\NotificationAdminController;
+use App\Http\Controllers\AdminNotificationController;
 
 // Public Routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -69,6 +70,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notification-preferences', [NotificationPreferenceController::class, 'show']);
     Route::put('/notification-preferences', [NotificationPreferenceController::class, 'update']);
 
-    // Admin/Test send notifications
+    // Admin notification endpoints (for React admin)
+    Route::post('/notifications/send', [AdminNotificationController::class, 'sendApi']);
+    Route::get('/notifications/logs', [AdminNotificationController::class, 'logs']);
+
+    // Legacy test route
     Route::post('/notifications/test', [NotificationAdminController::class, 'test']);
 });
