@@ -4,11 +4,12 @@ import 'package:provider/provider.dart';
 import '../providers/notification_provider.dart';
 import '../widgets/in_app_notif_banner.dart';
 import 'billing_screen.dart';
+import 'aktivitas_screen.dart';
 import 'dashboard_screen.dart';
 import 'komunitas_screen.dart';
 import 'profile_screen.dart';
 import 'support_screen.dart';
-import 'notification_screen.dart';
+import 'notification_screen.dart'; // still used by banner overlay tap
 
 class MainScreen extends StatefulWidget {
   final int? initialIndex;
@@ -72,7 +73,7 @@ class _MainScreenState extends State<MainScreen> {
           controller: _pageController,
           onPageChanged: (i) => setState(() => _pageIndex = i),
           children: const [
-            BillingScreen(),
+            AktivitasScreen(),
             DashboardScreen(),
             KomunitasScreen(),
             ProfileScreen(),
@@ -99,8 +100,8 @@ class _MainScreenState extends State<MainScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _NavItem(
-                    icon: Icons.receipt_long,
-                    label: 'Voucher',
+                    icon: Icons.timeline_rounded,
+                    label: 'Aktivitas',
                     selected: _pageIndex == 0,
                     onTap: () {
                       setState(() => _pageIndex = 0);
@@ -141,20 +142,6 @@ class _MainScreenState extends State<MainScreen> {
                           duration: const Duration(milliseconds: 250),
                           curve: Curves.easeOut);
                     },
-                  ),
-                  // Notification bell nav item
-                  Consumer<NotificationProvider>(
-                    builder: (ctx, provider, _) => _NotifNavItem(
-                      unreadCount: provider.unreadCount,
-                      onTap: () {
-                        Navigator.push(
-                          ctx,
-                          MaterialPageRoute(
-                            builder: (_) => const NotificationScreen(),
-                          ),
-                        );
-                      },
-                    ),
                   ),
                 ],
               ),
@@ -282,67 +269,4 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-class _NotifNavItem extends StatelessWidget {
-  final int unreadCount;
-  final VoidCallback onTap;
-  const _NotifNavItem({required this.unreadCount, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Icon(Icons.notifications_none,
-                      size: 20, color: Colors.white.withOpacity(0.75)),
-                  if (unreadCount > 0)
-                    Positioned(
-                      right: -6,
-                      top: -4,
-                      child: Container(
-                        width: 16,
-                        height: 16,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFE11D48),
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          unreadCount > 9 ? '9+' : '$unreadCount',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Notif',
-                style: GoogleFonts.poppins(
-                  color: Colors.white.withOpacity(0.85),
-                  fontWeight: FontWeight.w500,
-                  fontSize: 11,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+// _NotifNavItem removed — notification accessed via bell icon in home header
