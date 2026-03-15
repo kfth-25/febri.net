@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../utils/app_theme.dart';
 
 // ─── Color tokens (from CSS :root) ───────────────────────────────────────────
 const _ink = Color(0xFF080f20);
@@ -128,11 +129,10 @@ class _DarkHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: _ink,
-        gradient: LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: [Color(0xFF0a1020), _ink],
+        color: AppTheme.primaryColor,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
         ),
       ),
       child: SafeArea(
@@ -142,7 +142,7 @@ class _DarkHeader extends StatelessWidget {
           children: [
             // Title row
             Padding(
-              padding: const EdgeInsets.fromLTRB(22, 14, 22, 0),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -151,16 +151,15 @@ class _DarkHeader extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('MARET 2026',
-                            style: GoogleFonts.sora(
-                              fontSize: 10, fontWeight: FontWeight.w600,
-                              color: Colors.white.withOpacity(0.35),
-                              letterSpacing: 1.0,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11, fontWeight: FontWeight.w500,
+                              color: Colors.white70,
                             )),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 2),
                         Text('Aktivitas',
-                            style: GoogleFonts.sora(
-                              fontSize: 22, fontWeight: FontWeight.w800,
-                              color: Colors.white, letterSpacing: -0.5,
+                            style: GoogleFonts.poppins(
+                              fontSize: 24, fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             )),
                       ],
                     ),
@@ -196,16 +195,17 @@ class _DarkHeader extends StatelessWidget {
             TabBar(
               controller: tabController,
               tabs: tabs.map((t) => Tab(text: t)).toList(),
-              labelStyle: GoogleFonts.sora(fontSize: 12, fontWeight: FontWeight.w600),
-              unselectedLabelStyle: GoogleFonts.sora(fontSize: 12, fontWeight: FontWeight.w500),
-              labelColor: _aqua,
-              unselectedLabelColor: Colors.white.withOpacity(0.35),
-              indicatorColor: _aqua,
+              labelStyle: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600),
+              unselectedLabelStyle: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500),
+              labelColor: AppTheme.secondaryColor,
+              unselectedLabelColor: Colors.white.withOpacity(0.45),
+              indicatorColor: AppTheme.secondaryColor,
               indicatorSize: TabBarIndicatorSize.tab,
               indicatorWeight: 2,
-              dividerColor: Colors.white.withOpacity(0.07),
+              dividerColor: Colors.white.withOpacity(0.08),
               padding: const EdgeInsets.symmetric(horizontal: 4),
             ),
+            const SizedBox(height: 4),
           ],
         ),
       ),
@@ -219,13 +219,13 @@ class _HeaderIconBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: 36, height: 36,
+        width: 38, height: 38,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.07),
-          border: Border.all(color: Colors.white.withOpacity(0.09)),
+          color: Colors.white.withOpacity(0.08),
+          border: Border.all(color: Colors.white.withOpacity(0.12)),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(icon, size: 17, color: Colors.white.withOpacity(0.55)),
+        child: Icon(icon, size: 18, color: Colors.white70),
       );
 }
 
@@ -236,20 +236,20 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.06),
-          border: Border.all(color: Colors.white.withOpacity(0.08)),
-          borderRadius: BorderRadius.circular(18),
+          color: Colors.white.withOpacity(0.07),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: GoogleFonts.sora(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.35))),
-            const SizedBox(height: 6),
-            Text(value, style: GoogleFonts.jetBrainsMono(fontSize: 17, fontWeight: FontWeight.w800, color: color, letterSpacing: -0.5)),
-            const SizedBox(height: 4),
-            Text(sub, style: GoogleFonts.sora(fontSize: 9, color: Colors.white.withOpacity(0.25))),
+            Text(label, style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w500, color: Colors.white60)),
+            const SizedBox(height: 5),
+            Text(value, style: GoogleFonts.jetBrainsMono(fontSize: 16, fontWeight: FontWeight.w800, color: color, letterSpacing: -0.5)),
+            const SizedBox(height: 3),
+            Text(sub, style: GoogleFonts.poppins(fontSize: 9, color: Colors.white38)),
           ],
         ),
       );
@@ -834,16 +834,31 @@ class _BillCard extends StatelessWidget {
               _Badge(label: status, color: isPending ? _red : _green),
             ]),
             const SizedBox(height: 10),
-            GridView.count(
-              crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 8, crossAxisSpacing: 8, childAspectRatio: 3.2,
+            Column(
               children: [
-                _GridCell(label: 'Paket', value: paket, valueColor: _t1),
-                if (periode != null) _GridCell(label: 'Periode', value: periode!, valueColor: _t1),
-                if (dibayar != null) _GridCell(label: 'Dibayar', value: dibayar!, valueColor: _green),
-                _GridCell(label: isPending ? 'Tagihan' : 'Total', value: amount, valueColor: _t1, isMono: true),
-                if (jatuhTempo != null) _GridCell(label: 'Jatuh Tempo', value: jatuhTempo!, valueColor: _red, bgColor: const Color(0xFFFEE2E2)),
-                if (metode != null) _GridCell(label: 'Metode', value: metode!, valueColor: _green, bgColor: const Color(0xFFD1FAE5)),
+                Row(
+                  children: [
+                    Expanded(child: _GridCell(label: 'Paket', value: paket, valueColor: _t1)),
+                    const SizedBox(width: 8),
+                    Expanded(child: periode != null
+                        ? _GridCell(label: 'Periode', value: periode!, valueColor: _t1)
+                        : dibayar != null
+                            ? _GridCell(label: 'Dibayar', value: dibayar!, valueColor: _green)
+                            : const SizedBox()),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(child: _GridCell(label: isPending ? 'Tagihan' : 'Total', value: amount, valueColor: _t1, isMono: true)),
+                    const SizedBox(width: 8),
+                    Expanded(child: jatuhTempo != null
+                        ? _GridCell(label: 'Jatuh Tempo', value: jatuhTempo!, valueColor: _red, bgColor: const Color(0xFFFEE2E2))
+                        : metode != null
+                            ? _GridCell(label: 'Metode', value: metode!, valueColor: _green, bgColor: const Color(0xFFD1FAE5))
+                            : const SizedBox()),
+                  ],
+                ),
               ],
             ),
             if (isPending) ...[
