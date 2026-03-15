@@ -9,7 +9,7 @@ import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
 import 'notification_service.dart';
 import '../screens/main_screen.dart';
-import '../screens/installation_status_screen.dart';
+import '../screens/installation/installation_status_screen.dart';
 
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {

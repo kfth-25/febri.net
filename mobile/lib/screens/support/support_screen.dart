@@ -6,8 +6,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
-import '../utils/app_theme.dart';
+import '../../providers/auth_provider.dart';
+import '../../utils/app_theme.dart';
 
 class SupportScreen extends StatefulWidget {
   final int? initialIssueId;

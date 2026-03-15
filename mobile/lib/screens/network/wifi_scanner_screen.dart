@@ -6,9 +6,9 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../providers/auth_provider.dart';
-import '../utils/app_theme.dart';
-import '../widgets/loading_scan_animation.dart';
+import '../../providers/auth_provider.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/loading_scan_animation.dart';
 
 class WifiScannerScreen extends StatefulWidget {
   const WifiScannerScreen({super.key});

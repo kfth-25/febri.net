@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../utils/app_theme.dart';
+import '../../utils/app_theme.dart';
 import 'technician_selection_screen.dart';
 
 class InstallationDetailScreen extends StatelessWidget {

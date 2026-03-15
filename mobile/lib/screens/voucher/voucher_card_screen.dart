@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
-import '../utils/app_theme.dart';
+import '../../utils/app_theme.dart';
 
 class VoucherCardScreen extends StatelessWidget {
   final String code;

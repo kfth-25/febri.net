@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/auth_provider.dart';
-import '../utils/app_theme.dart';
-import '../widgets/grid_background_painter.dart';
-import 'dashboard_screen.dart'; // For navigation back to home
+import '../../providers/auth_provider.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/grid_background_painter.dart';
+import '../home/dashboard_screen.dart'; // For navigation back to home
 
 class InstallationScreen extends StatefulWidget {
   final String? preselectedPackageId;

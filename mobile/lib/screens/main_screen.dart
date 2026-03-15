@@ -3,13 +3,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/notification_provider.dart';
 import '../widgets/in_app_notif_banner.dart';
-import 'billing_screen.dart';
-import 'aktivitas_screen.dart';
-import 'dashboard_screen.dart';
-import 'komunitas_screen.dart';
-import 'profile_screen.dart';
-import 'support_screen.dart';
-import 'notification_screen.dart'; // still used by banner overlay tap
+import 'billing/billing_screen.dart';
+import 'home/aktivitas_screen.dart';
+import 'home/dashboard_screen.dart';
+import 'community/komunitas_screen.dart';
+import 'profile/profile_screen.dart';
+import 'support/support_screen.dart';
+import 'notification/notification_screen.dart'; // still used by banner overlay tap
 
 class MainScreen extends StatefulWidget {
   final int? initialIndex;

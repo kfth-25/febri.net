@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
-import '../utils/app_theme.dart';
-import 'login_screen.dart';
-import 'notification_settings_screen.dart';
+import '../../providers/auth_provider.dart';
+import '../../utils/app_theme.dart';
+import '../auth/login_screen.dart';
+import '../notification/notification_settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});

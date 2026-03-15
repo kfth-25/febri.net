@@ -8,8 +8,8 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 
-import '../utils/app_theme.dart';
-import '../providers/auth_provider.dart';
+import '../../utils/app_theme.dart';
+import '../../providers/auth_provider.dart';
 import 'installation_screen.dart';
 import 'installation_detail_screen.dart';
 

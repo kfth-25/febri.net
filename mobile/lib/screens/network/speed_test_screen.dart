@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 // No external dependencies for this specific implementation if we stick to basic widgets,
 // but we'll use provider if needed for context. 
 // Assuming AppTheme is available.
-import '../utils/app_theme.dart';
+import '../../utils/app_theme.dart';
 
 class SpeedTestScreen extends StatefulWidget {
   const SpeedTestScreen({super.key});

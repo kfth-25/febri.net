@@ -4,11 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../utils/app_theme.dart';
-import '../providers/auth_provider.dart';
+import '../../utils/app_theme.dart';
+import '../../providers/auth_provider.dart';
 import 'voucher_payment_screen.dart';
-import 'installation_screen.dart';
-import '../widgets/loading_scan_animation.dart';
+import '../installation/installation_screen.dart';
+import '../../widgets/loading_scan_animation.dart';
 
 class PackagesScreen extends StatefulWidget {
   const PackagesScreen({super.key});
