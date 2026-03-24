@@ -51,54 +51,66 @@ class _NotificationScreenState extends State<NotificationScreen> {
         };
 
         return Scaffold(
-          backgroundColor: const Color(0xFF070D1B), // Dark background from mockup
+          backgroundColor: const Color(0xFF0B1221), // MATCH BILLING SCREEN HEADER
           body: Column(
             children: [
               _buildModernAppBar(provider, tabCounts),
               Expanded(
                 child: Container(
-                  color: const Color(0xFFF1F4F9), // Light grey body background from mockup
-                  child: filteredNotifs.isEmpty
-                      ? _buildEmpty()
-                      : ListView.builder(
-                          padding: const EdgeInsets.only(top: 10, bottom: 30),
-                          itemCount: filteredNotifs.length,
-                          itemBuilder: (context, index) {
-                            final notif = filteredNotifs[index];
-                            final actualIndex = provider.notifications.indexOf(notif);
-                            
-                            // Check if this is the first item of a date to show date header
-                            bool showDate = true;
-                            if (index > 0) {
-                              String prevDate = _getDateString(filteredNotifs[index - 1].ts);
-                              String currDate = _getDateString(notif.ts);
-                              if (prevDate == currDate) showDate = false;
-                            }
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF5F7FA), // Light background for content
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
+                    ),
+                    child: filteredNotifs.isEmpty
+                        ? _buildEmpty()
+                        : ListView.builder(
+                            padding: const EdgeInsets.only(top: 20, bottom: 30),
+                            itemCount: filteredNotifs.length,
+                            itemBuilder: (context, index) {
+                              final notif = filteredNotifs[index];
+                              final actualIndex = provider.notifications.indexOf(notif);
+                              
+                              // Check if this is the first item of a date to show date header
+                              bool showDate = true;
+                              if (index > 0) {
+                                String prevDate = _getDateString(filteredNotifs[index - 1].ts);
+                                String currDate = _getDateString(notif.ts);
+                                if (prevDate == currDate) showDate = false;
+                              }
 
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (showDate)
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 20, top: 16, bottom: 8),
-                                    child: Text(
-                                      _formatDateHeader(notif.ts),
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xFF7A8699),
-                                        letterSpacing: 1,
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (showDate)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 20, top: 16, bottom: 8),
+                                      child: Text(
+                                        _formatDateHeader(notif.ts),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: const Color(0xFF7A8699),
+                                          letterSpacing: 1,
+                                        ),
                                       ),
                                     ),
+                                  _NotifCard(
+                                    notif: notif,
+                                    onTap: () => provider.markRead(actualIndex),
                                   ),
-                                _NotifCard(
-                                  notif: notif,
-                                  onTap: () => provider.markRead(actualIndex),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
+                                ],
+                              );
+                            },
+                          ),
+                  ),
                 ),
               ),
             ],

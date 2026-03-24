@@ -11,6 +11,9 @@ import Issues from './pages/Issues/Issues';
 import Technicians from './pages/Technicians/Technicians';
 import InstallationRegistration from './pages/Medicines/Medicines';
 import Notifications from './pages/Notifications/Notifications';
+import SubscriptionExpiry from './pages/Subscriptions/SubscriptionExpiry';
+import ChatAdmin from './pages/Chat/ChatAdmin';
+import CommunityAdmin from './pages/Community/CommunityAdmin';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -81,6 +84,30 @@ function App() {
             element={
               <PrivateRoute>
                 <Notifications />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/subscriptions"
+            element={
+              <PrivateRoute>
+                <SubscriptionExpiry />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/chat"
+            element={
+              <PrivateRoute>
+                <ChatAdmin />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/community"
+            element={
+              <PrivateRoute>
+                <CommunityAdmin />
               </PrivateRoute>
             }
           />

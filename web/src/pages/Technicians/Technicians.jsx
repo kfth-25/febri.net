@@ -186,7 +186,7 @@ const Technicians = () => {
                         <TableCell component="th" scope="row" sx={{ fontWeight: 500 }}>
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <Box sx={{ p: 1, borderRadius: 1, bgcolor: '#eff6ff', color: '#3b82f6', mr: 2 }}>
-                                <EngineeringIcon fontSize="small" />
+                              <EngineeringIcon fontSize="small" />
                             </Box>
                             {tech.name}
                           </Box>
@@ -197,9 +197,9 @@ const Technicians = () => {
                           {tech.address || '-'}
                         </TableCell>
                         <TableCell>
-                          <Chip 
-                            label="Aktif" 
-                            size="small" 
+                          <Chip
+                            label="Aktif"
+                            size="small"
                             color="success"
                             variant="outlined"
                             sx={{ fontWeight: 500 }}
