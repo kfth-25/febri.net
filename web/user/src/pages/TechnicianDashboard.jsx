@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Grid, Paper, Box, Divider, Button, Chip, Tabs, Tab } from '@mui/material';
+import { Container, Typography, Grid, Paper, Box, Divider, Button, Chip, Tabs, Tab, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +10,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import CircularProgress from '@mui/material/CircularProgress';
+import MapIcon from '@mui/icons-material/Map';
 import api from '../services/api';
 
 const TechnicianDashboard = () => {
@@ -18,6 +19,18 @@ const TechnicianDashboard = () => {
     const [tabIndex, setTabIndex] = useState(0);
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedJob, setSelectedJob] = useState(null);
+    const [detailOpen, setDetailOpen] = useState(false);
+
+    const handleOpenDetail = (job) => {
+        setSelectedJob(job);
+        setDetailOpen(true);
+    };
+
+    const handleCloseDetail = () => {
+        setDetailOpen(false);
+        setSelectedJob(null);
+    };
 
     useEffect(() => {
         const fetchJobs = async () => {
@@ -40,6 +53,7 @@ const TechnicianDashboard = () => {
                         status: s.installation_step === 'installing' ? 'in_progress' : 'pending',
                         date: new Date(s.created_at).toLocaleString('id-ID'),
                         package: s.wifi_package?.name || 'Paket Internet',
+                        map_link: s.map_link,
                         rawId: s.id,
                         isIssue: false,
                         originalData: s
@@ -56,6 +70,7 @@ const TechnicianDashboard = () => {
                         status: i.status === 'in_progress' ? 'in_progress' : 'pending',
                         date: new Date(i.created_at).toLocaleString('id-ID'),
                         issue: i.subject,
+                        map_link: i.subscription?.map_link,
                         rawId: i.id,
                         isIssue: true,
                         originalData: i
@@ -108,7 +123,20 @@ const TechnicianDashboard = () => {
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
                     <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
                         <LocationOnIcon fontSize="small" sx={{ color: 'text.secondary', mt: 0.3 }} />
-                        <Typography variant="body2">{job.address}</Typography>
+                        <Box>
+                            <Typography variant="body2">{job.address}</Typography>
+                            {job.map_link && (
+                                <Button 
+                                    size="small" 
+                                    startIcon={<MapIcon fontSize="small" />} 
+                                    href={job.map_link} 
+                                    target="_blank" 
+                                    sx={{ mt: 0.5, p: 0, minWidth: 'auto', textTransform: 'none', fontSize: '0.75rem' }}
+                                >
+                                    Buka di Maps
+                                </Button>
+                            )}
+                        </Box>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <AssignmentIcon fontSize="small" sx={{ color: 'text.secondary' }} />
@@ -123,7 +151,7 @@ const TechnicianDashboard = () => {
                 </Box>
                 
                 <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Button variant="contained" color="secondary" size="small" fullWidth onClick={() => alert('Detail tugas')}>
+                    <Button variant="contained" color="secondary" size="small" fullWidth onClick={() => handleOpenDetail(job)}>
                         Lihat Detail
                     </Button>
                     {job.status === 'pending' && (
@@ -258,6 +286,60 @@ const TechnicianDashboard = () => {
                     </Grid>
                 </Container>
             </Box>
+
+            {/* Detail Dialog */}
+            <Dialog open={detailOpen} onClose={handleCloseDetail} maxWidth="sm" fullWidth>
+                <DialogTitle sx={{ fontWeight: 'bold' }}>Detail Tugas: {selectedJob?.id}</DialogTitle>
+                <DialogContent dividers>
+                    {selectedJob && (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary">Nama Pelanggan</Typography>
+                                <Typography variant="body1">{selectedJob.customer}</Typography>
+                            </Box>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary">Kontak (HP/WA)</Typography>
+                                <Typography variant="body1">{selectedJob.phone}</Typography>
+                            </Box>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary">Alamat Lengkap</Typography>
+                                <Typography variant="body1">{selectedJob.address}</Typography>
+                                {selectedJob.map_link && (
+                                    <Button size="small" startIcon={<MapIcon />} href={selectedJob.map_link} target="_blank" sx={{ mt: 1, textTransform: 'none' }}>
+                                        Buka Titik Peta (Google Maps)
+                                    </Button>
+                                )}
+                            </Box>
+                            {selectedJob.type === 'Pemasangan' && (
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary">Status Pesanan</Typography>
+                                    <Typography variant="body1">{selectedJob.originalData?.status} (Pemasangan: {selectedJob.originalData?.installation_step})</Typography>
+                                </Box>
+                            )}
+                            {selectedJob.type === 'Pemasangan' && selectedJob.package && (
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary">Paket WiFi</Typography>
+                                    <Typography variant="body1">{selectedJob.package}</Typography>
+                                </Box>
+                            )}
+                            {selectedJob.type === 'Gangguan' && selectedJob.issue && (
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary">Kendala / Keluhan</Typography>
+                                    <Typography variant="body1">{selectedJob.issue}</Typography>
+                                    <Typography variant="body2" sx={{ mt: 1 }}>{selectedJob.originalData?.description}</Typography>
+                                </Box>
+                            )}
+                            <Box>
+                                <Typography variant="caption" color="text.secondary">Catatan Tambahan (Termasuk KTP/Jadwal)</Typography>
+                                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{selectedJob.originalData?.notes || '-'}</Typography>
+                            </Box>
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleCloseDetail}>Tutup</Button>
+                </DialogActions>
+            </Dialog>
         </Layout>
     );
 };

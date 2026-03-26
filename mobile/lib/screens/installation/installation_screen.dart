@@ -33,6 +33,7 @@ class _InstallationScreenState extends State<InstallationScreen> {
   final _rtController = TextEditingController();
   final _rwController = TextEditingController();
   final _landmarkController = TextEditingController();
+  final _mapLinkController = TextEditingController();
   String? _selectedKelurahan;
   Map<String, dynamic>? _selectedTechnician;
 
@@ -119,6 +120,7 @@ class _InstallationScreenState extends State<InstallationScreen> {
       'phone': _phoneController.text,
       'email': _emailController.text,
       'technician_id': _selectedTechnician?['id'],
+      'map_link': _mapLinkController.text.isNotEmpty ? _mapLinkController.text : null,
       'notes': 'KTP: ${_ktpController.text} | Patokan: ${_landmarkController.text}',
     };
 
@@ -493,6 +495,9 @@ class _InstallationScreenState extends State<InstallationScreen> {
             const SizedBox(height: 16),
             _buildInputLabel('Patokan (opsional)'),
             _buildTextField(controller: _landmarkController, hint: 'Contoh: Dekat masjid Al-Falah'),
+            const SizedBox(height: 16),
+            _buildInputLabel('Link Google Maps'),
+            _buildTextField(controller: _mapLinkController, hint: 'https://maps.app.goo.gl/...', keyboardType: TextInputType.url),
             const SizedBox(height: 16),
             _buildInputLabel('Pilih Teknisi (opsional)'),
             InkWell(

@@ -10,7 +10,8 @@ import {
   Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
   Search as SearchIcon, Assignment as AssignmentIcon, Close as CloseIcon,
   BuildCircle as BuildCircleIcon, CheckCircle as CheckCircleIcon,
-  RadioButtonUnchecked as UncheckedIcon, Timeline as TimelineIcon
+  RadioButtonUnchecked as UncheckedIcon, Timeline as TimelineIcon,
+  Map as MapIcon, Engineering as EngineeringIcon
 } from '@mui/icons-material';
 import { getSubscriptions, createSubscription, updateSubscription, deleteSubscription } from '../../services/subscriptionService';
 import { getPackages } from '../../services/packageService';
@@ -18,23 +19,23 @@ import { getUsers } from '../../services/userService';
 import Layout from '../../components/Layout';
 
 const STATUS_FILTERS = [
-  { key: 'Semua',      label: 'Semua',                    type: 'all' },
-  { key: 'pending',    label: 'Menunggu',                  type: 'status' },
-  { key: 'active',     label: 'Aktif',                    type: 'status' },
-  { key: 'suspended',  label: 'Ditangguhkan',             type: 'status' },
-  { key: 'terminated', label: 'Berhenti',                 type: 'status' },
-  { key: 'scheduled',  label: 'Dijadwalkan',              type: 'step', color: '#3b82f6' },
+  { key: 'Semua', label: 'Semua', type: 'all' },
+  { key: 'pending', label: 'Menunggu', type: 'status' },
+  { key: 'active', label: 'Aktif', type: 'status' },
+  { key: 'suspended', label: 'Ditangguhkan', type: 'status' },
+  { key: 'terminated', label: 'Berhenti', type: 'status' },
+  { key: 'scheduled', label: 'Dijadwalkan', type: 'step', color: '#3b82f6' },
   { key: 'installing', label: 'Teknisi Dalam Pemasangan', type: 'step', color: '#8b5cf6' },
-  { key: 'done',       label: 'Pemasangan Selesai',       type: 'step', color: '#10b981' },
+  { key: 'done', label: 'Pemasangan Selesai', type: 'step', color: '#10b981' },
 ];
 const STATUS_LABEL = { pending: 'Menunggu', active: 'Aktif', suspended: 'Ditangguhkan', terminated: 'Berhenti' };
 const STATUS_COLOR = { active: 'success', pending: 'warning', suspended: 'error', terminated: 'default' };
 
 const INSTALL_STEPS = [
-  { key: 'pending',    label: 'Permohonan Diterima',     desc: 'Permohonan pemasangan diterima dan tercatat di sistem.' },
-  { key: 'scheduled',  label: 'Dijadwalkan',              desc: 'Tim sedang menyusun jadwal kunjungan teknisi.' },
+  { key: 'pending', label: 'Permohonan Diterima', desc: 'Permohonan pemasangan diterima dan tercatat di sistem.' },
+  { key: 'scheduled', label: 'Dijadwalkan', desc: 'Tim sedang menyusun jadwal kunjungan teknisi.' },
   { key: 'installing', label: 'Teknisi Dalam Pemasangan', desc: 'Teknisi sedang dalam proses pemasangan perangkat.' },
-  { key: 'done',       label: 'Pemasangan Selesai',       desc: 'Pemasangan selesai dan layanan internet aktif.' },
+  { key: 'done', label: 'Pemasangan Selesai', desc: 'Pemasangan selesai dan layanan internet aktif.' },
 ];
 const STEP_COLOR = { pending: '#f59e0b', scheduled: '#3b82f6', installing: '#8b5cf6', done: '#10b981' };
 const STEP_INDEX = { pending: 0, scheduled: 1, installing: 2, done: 3 };
@@ -43,6 +44,7 @@ const Orders = () => {
   const [subscriptions, setSubscriptions] = useState([]);
   const [packages, setPackages] = useState([]);
   const [users, setUsers] = useState([]);
+  const [technicians, setTechnicians] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
@@ -51,7 +53,7 @@ const Orders = () => {
   const [stepSubscription, setStepSubscription] = useState(null);
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('Semua');
-  const [formData, setFormData] = useState({ user_id: '', wifi_package_id: '', installation_address: '', notes: '', status: 'pending' });
+  const [formData, setFormData] = useState({ user_id: '', wifi_package_id: '', installation_address: '', notes: '', status: 'pending', map_link: '', technician_id: '' });
   const [stepForm, setStepForm] = useState({ installation_step: 'pending', scheduled_at: '', technician_notes: '' });
   const [stepLoading, setStepLoading] = useState(false);
   const [stepError, setStepError] = useState(null);
@@ -64,10 +66,16 @@ const Orders = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [subsData, pkgData, userData] = await Promise.all([
-        getSubscriptions(), getPackages(), isAdmin ? getUsers('customer') : Promise.resolve([])
+      const [subsData, pkgData, userData, techData] = await Promise.all([
+        getSubscriptions(), 
+        getPackages(), 
+        isAdmin ? getUsers('customer') : Promise.resolve([]),
+        isAdmin ? getUsers('technician') : Promise.resolve([])
       ]);
-      setSubscriptions(subsData); setPackages(pkgData); setUsers(userData);
+      setSubscriptions(subsData); 
+      setPackages(pkgData); 
+      setUsers(userData);
+      setTechnicians(techData);
       setError(null);
     } catch (err) { setError('Gagal memuat data pesanan.'); }
     finally { setLoading(false); }
@@ -77,7 +85,7 @@ const Orders = () => {
     let list = subscriptions;
     const f = STATUS_FILTERS.find(x => x.key === activeFilter);
     if (f && f.type === 'status') list = list.filter(s => s.status === activeFilter);
-    if (f && f.type === 'step')   list = list.filter(s => (s.installation_step || 'pending') === activeFilter);
+    if (f && f.type === 'step') list = list.filter(s => (s.installation_step || 'pending') === activeFilter);
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(s =>
@@ -92,10 +100,18 @@ const Orders = () => {
   const handleOpenDialog = (sub = null) => {
     if (sub) {
       setEditingSubscription(sub);
-      setFormData({ user_id: sub.user_id, wifi_package_id: sub.wifi_package_id, installation_address: sub.installation_address, notes: sub.notes || '', status: sub.status });
+      setFormData({ 
+        user_id: sub.user_id, 
+        wifi_package_id: sub.wifi_package_id, 
+        installation_address: sub.installation_address, 
+        notes: sub.notes || '', 
+        status: sub.status,
+        map_link: sub.map_link || '',
+        technician_id: sub.technician_id || ''
+      });
     } else {
       setEditingSubscription(null);
-      setFormData({ user_id: '', wifi_package_id: '', installation_address: '', notes: '', status: 'pending' });
+      setFormData({ user_id: '', wifi_package_id: '', installation_address: '', notes: '', status: 'pending', map_link: '', technician_id: '' });
     }
     setOpenDialog(true);
   };
@@ -150,7 +166,7 @@ const Orders = () => {
   };
 
   const avatarColor = (name) => {
-    const colors = ['#3b82f6','#10b981','#8b5cf6','#f59e0b','#ef4444','#0ea5e9'];
+    const colors = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#0ea5e9'];
     return colors[(name?.charCodeAt(0) || 0) % colors.length];
   };
 
@@ -183,11 +199,11 @@ const Orders = () => {
             }}
             sx={{ bgcolor: '#fff', '& .MuiOutlinedInput-root': { borderRadius: 2 }, minWidth: 300, maxWidth: 340, flexShrink: 0 }}
           />
-          <Box sx={{ 
-            display: 'flex', 
-            gap: 1, 
-            overflowX: 'auto', 
-            pb: 0.5, 
+          <Box sx={{
+            display: 'flex',
+            gap: 1,
+            overflowX: 'auto',
+            pb: 0.5,
             flexGrow: 1,
             '&::-webkit-scrollbar': { height: 6 },
             '&::-webkit-scrollbar-thumb': { bgcolor: '#cbd5e1', borderRadius: 3 }
@@ -213,6 +229,7 @@ const Orders = () => {
                   <TableCell>ID</TableCell>
                   <TableCell>Pelanggan</TableCell>
                   <TableCell>Paket</TableCell>
+                  <TableCell>Teknisi</TableCell>
                   <TableCell>Alamat Pemasangan</TableCell>
                   <TableCell>Tanggal</TableCell>
                   <TableCell>Status</TableCell>
@@ -253,8 +270,22 @@ const Orders = () => {
                           <Typography variant="body2" fontWeight={600}>{sub.wifi_package?.name || 'Unknown'}</Typography>
                           <Typography variant="caption" color="text.secondary">{sub.wifi_package?.speed} Mbps</Typography>
                         </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={600}>{sub.technician?.name || '-'}</Typography>
+                        </TableCell>
                         <TableCell sx={{ maxWidth: 200 }}>
-                          <Typography variant="body2" color="text.secondary" noWrap>{sub.installation_address}</Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>{sub.installation_address}</Typography>
+                          {sub.map_link && (
+                            <Button
+                              size="small"
+                              startIcon={<MapIcon fontSize="small" />}
+                              href={sub.map_link}
+                              target="_blank"
+                              sx={{ p: 0, minWidth: 'auto', textTransform: 'none', fontSize: '0.75rem', fontWeight: 600 }}
+                            >
+                              Buka Maps
+                            </Button>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">{new Date(sub.created_at || Date.now()).toLocaleDateString('id-ID')}</Typography>
@@ -293,13 +324,15 @@ const Orders = () => {
                           </Box>
                         </TableCell>
                         <TableCell align="right">
-                          <Tooltip title="Atur Progres Pemasangan">
-                            <IconButton size="small" onClick={() => handleOpenStepDialog(sub)} sx={{ mr: 0.5, bgcolor: '#f0fdf4', '&:hover': { bgcolor: '#dcfce7' } }}>
-                              <TimelineIcon sx={{ fontSize: 16, color: '#16a34a' }} />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Edit"><IconButton size="small" color="primary" onClick={() => handleOpenDialog(sub)} sx={{ mr: 0.5, bgcolor: '#eff6ff', '&:hover': { bgcolor: '#dbeafe' } }}><EditIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
-                          <Tooltip title="Hapus"><IconButton size="small" color="error" onClick={() => handleDelete(sub.id)} sx={{ bgcolor: '#fef2f2', '&:hover': { bgcolor: '#fee2e2' } }}><DeleteIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
+                          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                            <Tooltip title="Atur Progres Pemasangan">
+                              <IconButton size="small" onClick={() => handleOpenStepDialog(sub)} sx={{ bgcolor: '#f0fdf4', '&:hover': { bgcolor: '#dcfce7' } }}>
+                                <TimelineIcon sx={{ fontSize: 16, color: '#16a34a' }} />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Edit"><IconButton size="small" color="primary" onClick={() => handleOpenDialog(sub)} sx={{ bgcolor: '#eff6ff', '&:hover': { bgcolor: '#dbeafe' } }}><EditIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
+                            <Tooltip title="Hapus"><IconButton size="small" color="error" onClick={() => handleDelete(sub.id)} sx={{ bgcolor: '#fef2f2', '&:hover': { bgcolor: '#fee2e2' } }}><DeleteIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
+                          </Box>
                         </TableCell>
                       </TableRow>
                     );
@@ -319,28 +352,40 @@ const Orders = () => {
             <Grid container spacing={2} sx={{ mt: 0 }}>
               <Grid item xs={12} sm={6}>
                 <TextField select required fullWidth label="Pilih Pelanggan" value={formData.user_id}
-                  onChange={(e) => setFormData({...formData, user_id: e.target.value})} disabled={!isAdmin}>
+                  onChange={(e) => setFormData({ ...formData, user_id: e.target.value })} disabled={!isAdmin}>
                   {users.map((u) => (<MenuItem key={u.id} value={u.id}>{u.name} ({u.email})</MenuItem>))}
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField select required fullWidth label="Pilih Paket WiFi" value={formData.wifi_package_id}
-                  onChange={(e) => setFormData({...formData, wifi_package_id: e.target.value})}>
+                  onChange={(e) => setFormData({ ...formData, wifi_package_id: e.target.value })}>
                   {packages.map((p) => (<MenuItem key={p.id} value={p.id}>{p.name} - {p.speed} Mbps</MenuItem>))}
                 </TextField>
               </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField select fullWidth label="Pilih Teknisi" value={formData.technician_id}
+                  onChange={(e) => setFormData({...formData, technician_id: e.target.value})}>
+                  <MenuItem value=""><em>Belum Ditentukan</em></MenuItem>
+                  {technicians.map((t) => (<MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>))}
+                </TextField>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField fullWidth label="Link Google Maps" value={formData.map_link}
+                  onChange={(e) => setFormData({...formData, map_link: e.target.value})}
+                  placeholder="https://maps.google.com/..." />
+              </Grid>
               <Grid item xs={12}>
                 <TextField required fullWidth label="Alamat Pemasangan" multiline rows={2} value={formData.installation_address}
-                  onChange={(e) => setFormData({...formData, installation_address: e.target.value})} />
+                  onChange={(e) => setFormData({ ...formData, installation_address: e.target.value })} />
               </Grid>
               <Grid item xs={12}>
                 <TextField fullWidth label="Catatan Tambahan" multiline rows={2} value={formData.notes}
-                  onChange={(e) => setFormData({...formData, notes: e.target.value})} />
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })} />
               </Grid>
               {editingSubscription && (
                 <Grid item xs={12}>
                   <TextField select required fullWidth label="Status" value={formData.status}
-                    onChange={(e) => setFormData({...formData, status: e.target.value})}>
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
                     <MenuItem value="pending">Menunggu</MenuItem>
                     <MenuItem value="active">Aktif</MenuItem>
                     <MenuItem value="suspended">Ditangguhkan</MenuItem>

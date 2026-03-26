@@ -43,6 +43,8 @@ class TechnicianService {
               'status': s['installation_step'] == 'installing' ? 'in_progress' : 'pending',
               'date': _formatDate(s['created_at']),
               'package': s['wifi_package']?['name'] ?? 'Paket Internet',
+              'map_link': s['map_link'],
+              'originalData': s,
               'rawId': s['id'],
               'isIssue': false,
             });
@@ -63,6 +65,8 @@ class TechnicianService {
               'status': i['status'] == 'in_progress' ? 'in_progress' : 'pending',
               'date': _formatDate(i['created_at']),
               'issue': i['subject'] ?? '-',
+              'map_link': i['subscription']?['map_link'],
+              'originalData': i,
               'rawId': i['id'],
               'isIssue': true,
             });

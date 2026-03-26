@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../utils/app_theme.dart';
 import '../../services/technician_service.dart';
+import 'task_detail_screen.dart';
 
 class TechnicianTasksScreen extends StatelessWidget {
   const TechnicianTasksScreen({super.key});
@@ -47,11 +48,8 @@ class TechnicianTasksScreen extends StatelessWidget {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: _buildTaskCard(
-                  type: job['type'] ?? 'Tugas',
-                  customer: job['customer'] ?? 'Unknown',
-                  address: job['address'] ?? '-',
-                  status: statusText,
-                  date: job['date'] ?? '-',
+                  context,
+                  job: job,
                 ),
               );
             },
@@ -61,13 +59,13 @@ class TechnicianTasksScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTaskCard({
-    required String type,
-    required String customer,
-    required String address,
-    required String status,
-    required String date,
-  }) {
+  Widget _buildTaskCard(BuildContext context, {required Map<String, dynamic> job}) {
+    final type = job['type'] ?? 'Tugas';
+    final customer = job['customer'] ?? 'Unknown';
+    final address = job['address'] ?? '-';
+    final status = job['status'] == 'in_progress' ? 'Dikerjakan' : 'Terbuka';
+    final date = job['date'] ?? '-';
+    
     final isPemasangan = type == 'Pemasangan';
     return Container(
       padding: const EdgeInsets.all(16),
@@ -107,7 +105,7 @@ class TechnicianTasksScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: status == 'Terbuka' || status == 'Pending' ? Colors.orange.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+                  color: status == 'Terbuka' || status == 'Pending' || status == 'pending' ? Colors.orange.withOpacity(0.1) : Colors.green.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -115,7 +113,7 @@ class TechnicianTasksScreen extends StatelessWidget {
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: status == 'Terbuka' || status == 'Pending' ? Colors.orange : Colors.green,
+                    color: status == 'Terbuka' || status == 'Pending' || status == 'pending' ? Colors.orange : Colors.green,
                   ),
                 ),
               ),
@@ -151,7 +149,12 @@ class TechnicianTasksScreen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => TaskDetailScreen(job: job)),
+                );
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.secondaryColor,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
