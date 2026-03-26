@@ -316,6 +316,9 @@ const Installation = () => {
             const payload = {
                 wifi_package_id: formData.wifiPackageId,
                 installation_address: formData.installationAddress,
+                full_name: formData.fullName,
+                phone: formData.phone,
+                email: formData.email || '',
                 notes: [
                     `Nama: ${formData.fullName}`,
                     `HP/WA: ${formData.phone}`,

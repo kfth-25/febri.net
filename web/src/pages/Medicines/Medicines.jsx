@@ -59,15 +59,14 @@ const InstallationRegistration = () => {
           getSubscriptions(),
           getPackages()
         ]);
-        const relevant = subs.filter(
-          (s) => s.status === 'pending' || s.status === 'active'
-        );
+        // Tampilkan semua pesanan/langganan kecuali yang terminated
+        const relevant = subs.filter((s) => s.status !== 'terminated');
         setInstallations(relevant);
         setPackages(pkgs);
         setError(null);
       } catch (err) {
-        console.error('Failed to load installation data:', err);
-        setError('Gagal memuat data pemasangan.');
+        console.error('Failed to load subscriptions:', err);
+        setError('Gagal memuat data pesanan/langganan.');
       } finally {
         setLoading(false);
       }
@@ -143,110 +142,37 @@ const InstallationRegistration = () => {
     }
   };
 
-  const getStageLabel = (sub) => {
-    if (sub.status === 'active' && sub.activated_at) return 'Pemasangan selesai';
-    if (sub.status === 'active') return 'Teknisi dalam pemasangan';
-    if (sub.status === 'pending' && sub.installation_date) return 'Dijadwalkan';
-    return 'Permohonan';
+  const getStatusLabel = (status) => {
+    const map = {
+      pending: 'Menunggu',
+      active: 'Aktif',
+      suspended: 'Ditangguhkan',
+      terminated: 'Berhenti'
+    };
+    return map[status] || status;
   };
 
-  const getStageColor = (sub) => {
-    const stage = getStageLabel(sub);
-    if (stage === 'Permohonan') return 'default';
-    if (stage === 'Dijadwalkan') return 'info';
-    if (stage === 'Teknisi dalam pemasangan') return 'warning';
-    if (stage === 'Pemasangan selesai') return 'success';
-    return 'default';
-  };
-
-  const handleOpenScheduleDialog = (sub) => {
-    setSelectedSub(sub);
-    setScheduleDate(sub.installation_date || '');
-    setOpenScheduleDialog(true);
-  };
-
-  const handleCloseScheduleDialog = () => {
-    setOpenScheduleDialog(false);
-    setSelectedSub(null);
-    setScheduleDate('');
-  };
-
-  const handleSaveSchedule = async () => {
-    if (!selectedSub || !scheduleDate) {
-      setError('Tanggal pemasangan wajib diisi.');
-      return;
-    }
-    try {
-      setSubmitting(true);
-      await updateSubscription(selectedSub.id, {
-        installation_date: scheduleDate
-      });
-      const updated = await getSubscriptions();
-      const relevant = updated.filter(
-        (s) => s.status === 'pending' || s.status === 'active'
-      );
-      setInstallations(relevant);
-      handleCloseScheduleDialog();
-      setError(null);
-    } catch (err) {
-      console.error('Failed to save schedule:', err);
-      setError('Gagal menyimpan jadwal pemasangan.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleStartInstallation = async (sub) => {
-    try {
-      setSubmitting(true);
-      await updateSubscription(sub.id, { status: 'active' });
-      const updated = await getSubscriptions();
-      const relevant = updated.filter(
-        (s) => s.status === 'pending' || s.status === 'active'
-      );
-      setInstallations(relevant);
-      setError(null);
-    } catch (err) {
-      console.error('Failed to start installation:', err);
-      setError('Gagal mengubah status pemasangan.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleCompleteInstallation = async (sub) => {
-    try {
-      setSubmitting(true);
-      const today = new Date().toISOString().slice(0, 10);
-      await updateSubscription(sub.id, {
-        status: 'active',
-        activated_at: today
-      });
-      const updated = await getSubscriptions();
-      const relevant = updated.filter(
-        (s) => s.status === 'pending' || s.status === 'active'
-      );
-      setInstallations(relevant);
-      setError(null);
-    } catch (err) {
-      console.error('Failed to complete installation:', err);
-      setError('Gagal menandai pemasangan selesai.');
-    } finally {
-      setSubmitting(false);
-    }
+  const getStatusColor = (status) => {
+    const map = {
+      pending: 'warning',
+      active: 'success',
+      suspended: 'error',
+      terminated: 'default'
+    };
+    return map[status] || 'default';
   };
 
   return (
-    <Layout title="Pemasangan">
+    <Layout title="Pesanan">
       <div className="page-container">
         <Container maxWidth="xl">
           <div className="page-header">
             <Box>
               <Typography variant="h5" fontWeight="bold" color="text.primary">
-                Antrian Pemasangan WiFi
+                Antrian Pesanan WiFi
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Daftar permohonan pemasangan baru yang statusnya masih pending.
+                Daftar semua langganan paket internet dari pelanggan.
               </Typography>
             </Box>
             {isAdmin && (
@@ -256,7 +182,7 @@ const InstallationRegistration = () => {
                 onClick={handleOpenDialog}
                 sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
               >
-                Pemasangan Manual
+                Buat Pesanan Baru
               </Button>
             )}
           </div>
@@ -274,30 +200,27 @@ const InstallationRegistration = () => {
                   <Table sx={{ minWidth: 650 }}>
                     <TableHead sx={{ bgcolor: '#f8fafc' }}>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 600, color: '#475569' }}>ID</TableCell>
                         <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Pelanggan</TableCell>
                         <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Paket</TableCell>
                         <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Alamat Pemasangan</TableCell>
-                        <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Proses</TableCell>
+                        <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Status Langganan</TableCell>
                         <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Catatan</TableCell>
-                        <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Aksi</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {loading ? (
                         <TableRow>
-                          <TableCell colSpan={7}>Memuat...</TableCell>
+                          <TableCell colSpan={6}>Memuat...</TableCell>
                         </TableRow>
                       ) : installations.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} align="center" sx={{ py: 3, color: 'text.secondary' }}>
-                            Belum ada ajuan pemasangan.
+                          <TableCell colSpan={5} align="center" sx={{ py: 3, color: 'text.secondary' }}>
+                            Belum ada pesanan/langganan aktif.
                           </TableCell>
                         </TableRow>
                       ) : (
                         installations.map((sub) => (
                           <TableRow key={sub.id} hover>
-                            <TableCell>#{sub.id}</TableCell>
                             <TableCell>
                               <Typography variant="body2" fontWeight={500}>
                                 {sub.user?.name || '-'}
@@ -318,46 +241,10 @@ const InstallationRegistration = () => {
                               {sub.installation_address}
                             </TableCell>
                             <TableCell>
-                              <Chip label={getStageLabel(sub)} size="small" color={getStageColor(sub)} />
+                              <Chip label={getStatusLabel(sub.status)} size="small" color={getStatusColor(sub.status)} />
                             </TableCell>
                             <TableCell sx={{ maxWidth: 260, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {sub.notes}
-                            </TableCell>
-                            <TableCell>
-                              {isAdmin && (
-                                <>
-                                  {getStageLabel(sub) === 'Permohonan' && (
-                                    <Button
-                                      size="small"
-                                      variant="outlined"
-                                      onClick={() => handleOpenScheduleDialog(sub)}
-                                      sx={{ textTransform: 'none' }}
-                                    >
-                                      Jadwalkan
-                                    </Button>
-                                  )}
-                                  {getStageLabel(sub) === 'Dijadwalkan' && (
-                                    <Button
-                                      size="small"
-                                      variant="outlined"
-                                      onClick={() => handleStartInstallation(sub)}
-                                      sx={{ textTransform: 'none' }}
-                                    >
-                                      Mulai Pemasangan
-                                    </Button>
-                                  )}
-                                  {getStageLabel(sub) === 'Teknisi dalam pemasangan' && (
-                                    <Button
-                                      size="small"
-                                      variant="contained"
-                                      onClick={() => handleCompleteInstallation(sub)}
-                                      sx={{ textTransform: 'none' }}
-                                    >
-                                      Tandai Selesai
-                                    </Button>
-                                  )}
-                                </>
-                              )}
+                              {sub.notes || '-'}
                             </TableCell>
                           </TableRow>
                         ))
@@ -370,7 +257,7 @@ const InstallationRegistration = () => {
           </Grid>
 
           <Dialog open={openDialog && isAdmin} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-            <DialogTitle>Pemasangan Manual oleh Admin</DialogTitle>
+            <DialogTitle>Buat Pesanan Baru oleh Admin</DialogTitle>
             <DialogContent dividers>
               <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
                 <TextField
@@ -451,31 +338,7 @@ const InstallationRegistration = () => {
             </DialogActions>
           </Dialog>
 
-          <Dialog open={openScheduleDialog && isAdmin} onClose={handleCloseScheduleDialog} maxWidth="xs" fullWidth>
-            <DialogTitle>Atur Jadwal Pemasangan</DialogTitle>
-            <DialogContent dividers>
-              <TextField
-                margin="normal"
-                fullWidth
-                type="date"
-                label="Tanggal Pemasangan"
-                InputLabelProps={{ shrink: true }}
-                value={scheduleDate}
-                onChange={(e) => setScheduleDate(e.target.value)}
-              />
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleCloseScheduleDialog}>Batal</Button>
-              <Button
-                onClick={handleSaveSchedule}
-                variant="contained"
-                disabled={submitting}
-                sx={{ textTransform: 'none', fontWeight: 600 }}
-              >
-                {submitting ? 'Menyimpan...' : 'Simpan'}
-              </Button>
-            </DialogActions>
-          </Dialog>
+          {/* Dialog Jadwal Dihapus */}
         </Container>
       </div>
     </Layout>

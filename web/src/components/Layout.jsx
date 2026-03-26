@@ -79,8 +79,8 @@ const Layout = ({ children, title = 'Dashboard Overview' }) => {
       items: [
         { text: 'Customer', icon: <PeopleIcon />, path: '/customers' },
         { text: 'Layanan', icon: <WifiIcon />, path: '/packages' },
-        { text: 'Pesanan', icon: <AssignmentIcon />, path: '/orders' },
-        { text: 'Pemasangan', icon: <AddLocationAltIcon />, path: '/installations' },
+        { text: 'Pesanan', icon: <AssignmentIcon />, path: '/installations' },
+        { text: 'Pemasangan', icon: <AddLocationAltIcon />, path: '/orders' },
       ]
     },
     {

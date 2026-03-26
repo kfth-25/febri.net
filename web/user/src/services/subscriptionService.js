@@ -7,9 +7,13 @@ export const getMySubscriptions = async () => {
 };
 
 export const createSubscription = async (data) => {
-    const response = await api.post('/subscriptions', {
+    // Call public endpoint for registration to handle guest auto-creation
+    const response = await api.post('/register-installation', {
         wifi_package_id: data.wifi_package_id,
         installation_address: data.installation_address,
+        full_name: data.full_name,
+        phone: data.phone,
+        email: data.email,
         notes: data.notes
     });
     const subscription = response.data;

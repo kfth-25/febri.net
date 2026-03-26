@@ -66,6 +66,60 @@ class SubscriptionController extends Controller
     }
 
     /**
+     * Register a new installation request from an unauthenticated user (guest).
+     */
+    public function registerGuest(Request $request)
+    {
+        $request->validate([
+            'wifi_package_id' => 'required|exists:wifi_packages,id',
+            'installation_address' => 'required|string',
+            'full_name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'notes' => 'nullable|string',
+        ]);
+
+        // Coba cari user berdasarkan email atau no HP
+        $user = null;
+        if ($request->email) {
+            $user = \App\Models\User::where('email', $request->email)->first();
+        }
+        if (!$user && $request->phone) {
+            $user = \App\Models\User::where('phone', $request->phone)->first();
+        }
+
+        // Jika belum ada, buatkan user baru otomatis
+        if (!$user) {
+            // Jika email kosong, generate email dummy dari nomor HP
+            $email = $request->email ?? ($request->phone . '@customer.local');
+            
+            // Cek sekali lagi memastikan email ini unik
+            if (\App\Models\User::where('email', $email)->exists()) {
+                $email = uniqid('user_') . '@customer.local';
+            }
+
+            $user = \App\Models\User::create([
+                'name' => $request->full_name,
+                'email' => $email,
+                'phone' => $request->phone,
+                'password' => \Illuminate\Support\Facades\Hash::make('user123'), // Default password
+                'role' => 'customer',
+                'status' => 'active',
+            ]);
+        }
+
+        $subscription = Subscription::create([
+            'user_id' => $user->id,
+            'wifi_package_id' => $request->wifi_package_id,
+            'installation_address' => $request->installation_address,
+            'status' => 'pending',
+            'notes' => $request->notes,
+        ]);
+
+        return response()->json($subscription->load(['wifiPackage', 'user']), 201);
+    }
+
+    /**
      * Display the specified resource.
      */
     public function show(string $id)
@@ -91,22 +145,66 @@ class SubscriptionController extends Controller
         // Only admin can update status and dates
         if ($user->role === 'admin') {
             $validated = $request->validate([
-                'status' => 'in:pending,active,suspended,terminated',
+                'status'            => 'nullable|in:pending,active,suspended,terminated',
+                'installation_step' => 'nullable|in:pending,scheduled,installing,done',
                 'installation_date' => 'nullable|date',
-                'activated_at' => 'nullable|date',
-                'expires_at' => 'nullable|date',
-                'notes' => 'nullable|string',
+                'activated_at'      => 'nullable|date',
+                'expires_at'        => 'nullable|date',
+                'scheduled_at'      => 'nullable|date',
+                'technician_notes'  => 'nullable|string|max:500',
+                'notes'             => 'nullable|string',
             ]);
-            
+
+            $oldStep   = $subscription->installation_step;
             $oldStatus = $subscription->status;
+
+            // Auto-set status=active when installation is done
+            if (isset($validated['installation_step']) && $validated['installation_step'] === 'done') {
+                $validated['status']       = 'active';
+                $validated['activated_at'] = $validated['activated_at'] ?? now();
+                if (empty($validated['expires_at'])) {
+                    $validated['expires_at'] = now()->addDays(30);
+                }
+            }
+
             $subscription->update($validated);
-            // Emit request_update to subscription owner if status changed
+
+            // Notify owner if installation_step changed
+            if (isset($validated['installation_step']) && $validated['installation_step'] !== $oldStep) {
+                $owner = $subscription->user;
+                if ($owner) {
+                    $stepLabels = [
+                        'pending'    => 'Permohonan Diterima',
+                        'scheduled'  => 'Dijadwalkan',
+                        'installing' => 'Teknisi Dalam Pemasangan',
+                        'done'       => 'Pemasangan Selesai',
+                    ];
+                    $newStep = $subscription->installation_step;
+                    $label   = $stepLabels[$newStep] ?? $newStep;
+                    $title   = 'Update Progres Pemasangan';
+                    $body    = "Status pemasangan WiFi Anda: {$label}.";
+                    $notifier->sendPushToUser(
+                        $owner->id,
+                        $title,
+                        $body,
+                        [
+                            'subscription_id' => $subscription->id,
+                            'installation_step' => $newStep,
+                            'deeplink' => 'app://installation/status?id=' . $subscription->id,
+                        ],
+                        'request_update'
+                    );
+                    $notifier->sendEmail($owner, $title, $body);
+                }
+            }
+
+            // Also notify if general status changed
             if (isset($validated['status']) && $validated['status'] !== $oldStatus) {
                 $owner = $subscription->user;
                 if ($owner) {
                     $newStatus = $subscription->status;
-                    $title = 'Status Permohonan Berubah';
-                    $body = 'Status langganan Anda sekarang: ' . $newStatus . '.';
+                    $title = 'Status Langganan Berubah';
+                    $body  = 'Status langganan Anda sekarang: ' . $newStatus . '.';
                     $notifier->sendPushToUser(
                         $owner->id,
                         $title,
@@ -114,7 +212,6 @@ class SubscriptionController extends Controller
                         ['subscription_id' => $subscription->id, 'status' => $newStatus, 'deeplink' => 'app://installation/status?id='.$subscription->id],
                         'request_update'
                     );
-                    $notifier->sendEmail($owner, $title, $body);
                 }
             }
         } else {

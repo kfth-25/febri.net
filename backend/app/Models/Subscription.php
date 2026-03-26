@@ -13,17 +13,21 @@ class Subscription extends Model
         'user_id',
         'wifi_package_id',
         'status',
+        'installation_step',
         'installation_address',
         'installation_date',
         'activated_at',
         'expires_at',
         'notes',
+        'scheduled_at',
+        'technician_notes',
     ];
 
     protected $casts = [
         'installation_date' => 'date',
         'activated_at' => 'datetime',
         'expires_at' => 'datetime',
+        'scheduled_at' => 'datetime',
     ];
 
     public function user()
