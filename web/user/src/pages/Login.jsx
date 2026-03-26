@@ -16,8 +16,9 @@ const Login = () => {
         e.preventDefault();
         setError('');
         try {
-            await login(email, password);
-            navigate('/dashboard');
+            const data = await login(email, password);
+            const userRole = data?.user?.role || 'customer';
+            navigate(userRole === 'technician' ? '/technician-dashboard' : '/dashboard');
         } catch (err) {
             setError('Email atau password salah. Silakan coba lagi.');
         }

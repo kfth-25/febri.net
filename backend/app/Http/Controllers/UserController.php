@@ -29,6 +29,17 @@ class UserController extends Controller
     }
 
     /**
+     * Get available technicians (publicly accessible for registration form).
+     */
+    public function getTechnicians()
+    {
+        return User::where('role', 'technician')
+            ->where('status', 'active')
+            ->select('id', 'name', 'phone', 'email')
+            ->get();
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)

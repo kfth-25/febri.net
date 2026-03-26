@@ -19,7 +19,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/packages', [WifiPackageController::class, 'index']);
 Route::get('/packages/{id}', [WifiPackageController::class, 'show']);
 Route::post('/register-installation', [SubscriptionController::class, 'registerGuest']);
-
+Route::get('/technicians', [UserController::class, 'getTechnicians']);
 
 // Speed Test Routes
 Route::get('/speedtest/download', function () {

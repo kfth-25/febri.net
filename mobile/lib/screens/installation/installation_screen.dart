@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 import '../../providers/auth_provider.dart';
 import '../../utils/app_theme.dart';
@@ -32,6 +34,7 @@ class _InstallationScreenState extends State<InstallationScreen> {
   final _rwController = TextEditingController();
   final _landmarkController = TextEditingController();
   String? _selectedKelurahan;
+  Map<String, dynamic>? _selectedTechnician;
 
   // Selection State
   late String _selectedPackageId;
@@ -108,12 +111,43 @@ class _InstallationScreenState extends State<InstallationScreen> {
     }
   }
 
-  void _submitForm() {
-    // Simulate API call
-    setState(() {
-      _regNumber = 'FBR-2026-${Random().nextInt(9000) + 1000}';
-      _isSuccess = true;
-    });
+  Future<void> _submitForm() async {
+    final payload = {
+      'wifi_package_id': _selectedPackageId,
+      'installation_address': '${_addressController.text}, RT ${_rtController.text}/RW ${_rwController.text}, Kel ${_selectedKelurahan ?? ''}',
+      'full_name': _nameController.text,
+      'phone': _phoneController.text,
+      'email': _emailController.text,
+      'technician_id': _selectedTechnician?['id'],
+      'notes': 'KTP: ${_ktpController.text} | Patokan: ${_landmarkController.text}',
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://192.168.1.5:8000/api/register-installation'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _regNumber = data['registration_code'] ?? data['id']?.toString() ?? 'BERHASIL';
+          _isSuccess = true;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal mengirim pendaftaran. Silakan coba lagi.')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Terjadi kesalahan jaringan. Cek koneksi Anda.')),
+      );
+    }
   }
 
   @override
@@ -459,6 +493,44 @@ class _InstallationScreenState extends State<InstallationScreen> {
             const SizedBox(height: 16),
             _buildInputLabel('Patokan (opsional)'),
             _buildTextField(controller: _landmarkController, hint: 'Contoh: Dekat masjid Al-Falah'),
+            const SizedBox(height: 16),
+            _buildInputLabel('Pilih Teknisi (opsional)'),
+            InkWell(
+              onTap: () async {
+                final selected = await Navigator.push<Map<String, dynamic>>(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TechnicianSelectionScreen()),
+                );
+                if (selected != null) {
+                  setState(() {
+                    _selectedTechnician = selected;
+                  });
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _selectedTechnician != null 
+                          ? _selectedTechnician!['name'] 
+                          : 'Pilih teknisi pilihan Anda...',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: _selectedTechnician != null ? Colors.black87 : Colors.grey[500],
+                      ),
+                    ),
+                    Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ],

@@ -21,33 +21,7 @@ import { createSubscription } from '../services/subscriptionService';
 import { getPackages } from '../services/packageService';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-
-const techniciansData = [
-    {
-        id: 1,
-        name: 'Budi Santoso',
-        role: 'Senior Fiber Technician',
-        status: 'available',
-        area: 'Jakarta Barat & Pusat',
-        phone: '+62 812-3456-7890'
-    },
-    {
-        id: 2,
-        name: 'Siti Nurhaliza',
-        role: 'Network Engineer',
-        status: 'busy',
-        area: 'Jakarta Selatan',
-        phone: '+62 813-9876-5432'
-    },
-    {
-        id: 3,
-        name: 'Ahmad Wijaya',
-        role: 'Field Technician',
-        status: 'available',
-        area: 'Jakarta Timur',
-        phone: '+62 815-1234-5678'
-    }
-];
+import { getTechnicians } from '../services/userService';
 
 const defaultCenter = {
     lat: -6.914744,
@@ -141,11 +115,13 @@ const Installation = () => {
         installationAddress: '',
         preferredSchedule: '',
         notes: '',
-        technicianName: ''
+        technicianId: ''
     });
     const [mapUrl, setMapUrl] = useState('');
     const [packages, setPackages] = useState([]);
     const [packagesLoading, setPackagesLoading] = useState(true);
+    const [technicians, setTechnicians] = useState([]);
+    const [techniciansLoading, setTechniciansLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
@@ -155,18 +131,23 @@ const Installation = () => {
     const [mapPosition, setMapPosition] = useState(defaultCenter);
 
     useEffect(() => {
-        const fetchPackages = async () => {
+        const fetchPackagesAndTechnicians = async () => {
             try {
-                const data = await getPackages();
-                setPackages(data);
+                const [pkgData, techData] = await Promise.all([
+                    getPackages().catch(() => []),
+                    getTechnicians().catch(() => [])
+                ]);
+                setPackages(pkgData);
+                setTechnicians(techData);
             } catch (error) {
-                setPackages([]);
+                console.error("Error fetching data:", error);
             } finally {
                 setPackagesLoading(false);
+                setTechniciansLoading(false);
             }
         };
 
-        fetchPackages();
+        fetchPackagesAndTechnicians();
     }, []);
 
     useEffect(() => {
@@ -176,6 +157,7 @@ const Installation = () => {
             if (preselectedRaw) {
                 preselected = JSON.parse(preselectedRaw);
                 setSelectedTechnician(preselected);
+                setFormData(prev => ({ ...prev, technicianId: preselected.id || '' }));
             }
         } catch {
             preselected = null;
@@ -324,10 +306,10 @@ const Installation = () => {
                     `HP/WA: ${formData.phone}`,
                     `Email: ${formData.email || '-'}`,
                     `Jadwal: ${formData.preferredSchedule || '-'}`,
-                    `Catatan: ${formData.notes || '-'}`,
-                    `Teknisi preferensi: ${formData.technicianName || '-'}`,
-                    `Maps: ${mapUrl || '-'}`
+                    `Catatan: ${formData.notes || '-'}`
                 ].join(' | '),
+                technician_id: formData.technicianId || null,
+                map_link: mapUrl || null,
                 userId: user ? user.id : null,
                 userEmail: user ? user.email : formData.email || null
             };
@@ -422,7 +404,7 @@ const Installation = () => {
                 installationAddress: '',
                 preferredSchedule: '',
                 notes: '',
-                technicianName: ''
+                technicianId: ''
             });
 
             if (selectedTechnician) {
@@ -651,6 +633,32 @@ const Installation = () => {
                                                         onChange={(e) => setFormData({ ...formData, preferredSchedule: e.target.value })}
                                                         sx={{ mb: 2 }}
                                                     />
+                                                </Grid>
+                                                <Grid item xs={12}>
+                                                    <TextField
+                                                        select
+                                                        margin="normal"
+                                                        fullWidth
+                                                        label="Pilih Teknisi (Opsional)"
+                                                        value={formData.technicianId}
+                                                        onChange={(e) => setFormData({ ...formData, technicianId: e.target.value })}
+                                                        sx={{ mb: 2 }}
+                                                        SelectProps={{ displayEmpty: true }}
+                                                        disabled={techniciansLoading}
+                                                    >
+                                                        <MenuItem value="">
+                                                            <em>
+                                                                {techniciansLoading
+                                                                    ? 'Memuat teknisi...'
+                                                                    : 'Pilih Teknisi Nanti...'}
+                                                            </em>
+                                                        </MenuItem>
+                                                        {technicians.map((tech) => (
+                                                            <MenuItem key={tech.id} value={tech.id}>
+                                                                {tech.name} - {tech.phone || '-'}
+                                                            </MenuItem>
+                                                        ))}
+                                                    </TextField>
                                                 </Grid>
                                                 <Grid item xs={12}>
                                                     <TextField

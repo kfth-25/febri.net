@@ -13,33 +13,56 @@ class TechnicianSelectionScreen extends StatefulWidget {
       _TechnicianSelectionScreenState();
 }
 
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+
 class _TechnicianSelectionScreenState extends State<TechnicianSelectionScreen> {
-  final List<_Technician> _technicians = const [
-    _Technician(
-      id: 1,
-      name: 'Andi Setiawan',
-      area: 'Pusat Kota',
-      experienceYears: 3,
-      jobsToday: 4,
-      estimatedArrivalMinutes: 60,
-    ),
-    _Technician(
-      id: 2,
-      name: 'Budi Pratama',
-      area: 'Utara & Sekitar',
-      experienceYears: 5,
-      jobsToday: 3,
-      estimatedArrivalMinutes: 90,
-    ),
-    _Technician(
-      id: 3,
-      name: 'Citra Lestari',
-      area: 'Selatan & Perumahan',
-      experienceYears: 4,
-      jobsToday: 2,
-      estimatedArrivalMinutes: 75,
-    ),
-  ];
+  List<_Technician> _technicians = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTechnicians();
+  }
+
+  Future<void> _fetchTechnicians() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      
+      final url = Uri.parse('http://192.168.1.5:8000/api/technicians');
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          _technicians = data.map((json) {
+            return _Technician(
+              id: json['id'],
+              name: json['name'] ?? 'Unknown',
+              area: json['address'] ?? 'Semua Area',
+              experienceYears: 2, // Dummy
+              jobsToday: 2, // Dummy
+              estimatedArrivalMinutes: 60, // Dummy
+            );
+          }).toList();
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,15 +76,24 @@ class _TechnicianSelectionScreenState extends State<TechnicianSelectionScreen> {
         foregroundColor: Colors.white,
       ),
       backgroundColor: AppTheme.backgroundColor,
-      body: ListView.separated(
-        padding: const EdgeInsets.all(24),
-        itemCount: _technicians.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 16),
-        itemBuilder: (context, index) {
-          final tech = _technicians[index];
-          return _buildTechnicianCard(tech);
-        },
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _technicians.isEmpty
+              ? Center(
+                  child: Text(
+                    'Tidak ada teknisi tersedia saat ini.',
+                    style: GoogleFonts.poppins(color: Colors.grey[600]),
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.all(24),
+                  itemCount: _technicians.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    final tech = _technicians[index];
+                    return _buildTechnicianCard(tech);
+                  },
+                ),
     );
   }
 

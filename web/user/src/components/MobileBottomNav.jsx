@@ -13,14 +13,37 @@ const MobileBottomNav = () => {
     const location = useLocation();
     const { user } = useAuth();
 
+    const getActions = () => {
+        const baseActions = [
+            { label: 'Home', icon: <HomeIcon />, path: '/' },
+        ];
+        
+        if (!user || user.role !== 'technician') {
+            baseActions.push({ label: 'Paket', icon: <WifiIcon />, path: '/packages' });
+            baseActions.push({ label: 'Tagihan', icon: <ReceiptLongIcon />, path: '/billing' });
+        }
+        
+        baseActions.push({ label: 'Bantuan', icon: <SupportAgentIcon />, path: '/support' });
+        
+        if (user) {
+             baseActions.push({ label: 'Akun', icon: <PersonIcon />, path: user.role === 'technician' ? '/technician-dashboard' : '/dashboard' });
+        } else {
+             baseActions.push({ label: 'Masuk', icon: <PersonIcon />, path: '/login' });
+        }
+        
+        return baseActions;
+    };
+
     // Map paths to values
     const getValue = (path) => {
-        if (path === '/') return 0;
-        if (path === '/packages') return 1;
-        if (path === '/billing') return 2;
-        if (path === '/support') return 3;
-        if (path === '/dashboard' || path === '/login') return 4;
-        return 0;
+        const actions = getActions();
+        const index = actions.findIndex(a => 
+            a.path === path || 
+            (path === '/dashboard' && a.path === '/dashboard') ||
+            (path === '/technician-dashboard' && a.path === '/technician-dashboard') ||
+            (path === '/login' && a.path === '/login')
+        );
+        return index >= 0 ? index : 0;
     };
 
     const [value, setValue] = React.useState(getValue(location.pathname));
@@ -48,13 +71,9 @@ const MobileBottomNav = () => {
                 value={value}
                 onChange={(event, newValue) => {
                     setValue(newValue);
-                    switch(newValue) {
-                        case 0: navigate('/'); break;
-                        case 1: navigate('/packages'); break;
-                        case 2: navigate('/billing'); break;
-                        case 3: navigate('/support'); break;
-                        case 4: navigate(user ? '/dashboard' : '/login'); break;
-                        default: break;
+                    const actions = getActions();
+                    if (actions[newValue]) {
+                         navigate(actions[newValue].path);
                     }
                 }}
                 sx={{
@@ -77,11 +96,9 @@ const MobileBottomNav = () => {
                     }
                 }}
             >
-                <BottomNavigationAction label="Home" icon={<HomeIcon />} />
-                <BottomNavigationAction label="Paket" icon={<WifiIcon />} />
-                <BottomNavigationAction label="Tagihan" icon={<ReceiptLongIcon />} />
-                <BottomNavigationAction label="Bantuan" icon={<SupportAgentIcon />} />
-                <BottomNavigationAction label={user ? "Akun" : "Masuk"} icon={<PersonIcon />} />
+                {getActions().map((action, idx) => (
+                    <BottomNavigationAction key={idx} label={action.label} icon={action.icon} />
+                ))}
             </BottomNavigation>
         </Paper>
     );

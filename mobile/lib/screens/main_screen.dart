@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/notification_provider.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/in_app_notif_banner.dart';
 import 'billing/billing_screen.dart';
 import 'home/aktivitas_screen.dart';
@@ -9,6 +10,8 @@ import 'home/dashboard_screen.dart';
 import 'community/komunitas_screen.dart';
 import 'profile/profile_screen.dart';
 import 'support/support_screen.dart';
+import 'technician/technician_dashboard_screen.dart';
+import 'technician/technician_tasks_screen.dart';
 import 'notification/notification_screen.dart'; // still used by banner overlay tap
 
 class MainScreen extends StatefulWidget {
@@ -66,18 +69,30 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context);
+    final isTechnician = auth.user?['role'] == 'technician';
+
+    final screens = isTechnician
+        ? const [
+            TechnicianDashboardScreen(),
+            TechnicianTasksScreen(),
+            KomunitasScreen(),
+            ProfileScreen(),
+          ]
+        : const [
+            AktivitasScreen(),
+            DashboardScreen(),
+            KomunitasScreen(),
+            ProfileScreen(),
+          ];
+
     return _NotifBannerOverlay(
       overlayKey: _overlayKey,
       child: Scaffold(
         body: PageView(
           controller: _pageController,
           onPageChanged: (i) => setState(() => _pageIndex = i),
-          children: const [
-            AktivitasScreen(),
-            DashboardScreen(),
-            KomunitasScreen(),
-            ProfileScreen(),
-          ],
+          children: screens,
         ),
         bottomNavigationBar: SafeArea(
           minimum: const EdgeInsets.only(bottom: 4),
@@ -100,8 +115,8 @@ class _MainScreenState extends State<MainScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _NavItem(
-                    icon: Icons.timeline_rounded,
-                    label: 'Aktivitas',
+                    icon: isTechnician ? Icons.home_repair_service : Icons.timeline_rounded,
+                    label: isTechnician ? 'Beranda' : 'Aktivitas',
                     selected: _pageIndex == 0,
                     onTap: () {
                       setState(() => _pageIndex = 0);
@@ -111,8 +126,8 @@ class _MainScreenState extends State<MainScreen> {
                     },
                   ),
                   _NavItem(
-                    icon: Icons.home,
-                    label: 'Home',
+                    icon: isTechnician ? Icons.assignment : Icons.home,
+                    label: isTechnician ? 'Tugas' : 'Home',
                     selected: _pageIndex == 1,
                     onTap: () {
                       setState(() => _pageIndex = 1);

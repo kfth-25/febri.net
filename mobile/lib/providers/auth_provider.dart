@@ -186,6 +186,42 @@ class AuthProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return true;
+    } else if (email == 'tech@febri.net' && password == 'tech123') {
+      final mockUser = <String, dynamic>{
+        'name': 'Febri Tech',
+        'email': 'tech@febri.net',
+        'role': 'technician',
+      };
+
+      _isAuthenticated = true;
+      _token = 'mock_token_tech_offline';
+      _user = mockUser;
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', _token!);
+      await prefs.setString('user', jsonEncode(mockUser));
+
+      try {
+        await FcmService().init();
+        final t = await FcmService().getTokenOrNull();
+        if (t != null) {
+          await _registerDeviceToken(t, platform: 'android');
+        } else {
+          await _registerDeviceToken('local-only', platform: 'android');
+        }
+      } catch (_) {
+        try {
+          await _registerDeviceToken('local-only', platform: 'android');
+        } catch (_) {}
+      }
+
+      try {
+        SocketService().connect('user-mock');
+      } catch (_) {}
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
     }
 
     _isLoading = false;

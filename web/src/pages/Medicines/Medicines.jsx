@@ -35,6 +35,7 @@ const InstallationRegistration = () => {
   const [installations, setInstallations] = useState([]);
   const [packages, setPackages] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [technicians, setTechnicians] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -43,7 +44,8 @@ const InstallationRegistration = () => {
     user_id: '',
     wifi_package_id: '',
     installation_address: '',
-    notes: ''
+    notes: '',
+    technician_id: ''
   });
   const [mapUrl, setMapUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -73,8 +75,12 @@ const InstallationRegistration = () => {
 
       if (isAdmin) {
         try {
-          const users = await getUsers('customer');
+          const [users, techs] = await Promise.all([
+             getUsers('customer'),
+             getUsers('technician')
+          ]);
           setCustomers(users);
+          setTechnicians(techs);
         } catch (err) {
           console.error('Failed to load customers for manual installation:', err);
         }
@@ -88,7 +94,8 @@ const InstallationRegistration = () => {
       user_id: '',
       wifi_package_id: '',
       installation_address: '',
-      notes: ''
+      notes: '',
+      technician_id: ''
     });
     setMapUrl('');
     setOpenDialog(true);
@@ -114,6 +121,7 @@ const InstallationRegistration = () => {
       const payload = {
         user_id: formData.user_id,
         wifi_package_id: formData.wifi_package_id,
+        technician_id: formData.technician_id || null,
         installation_address: formData.installation_address,
         notes: [
           customer ? `Nama: ${customer.name}` : null,
@@ -194,7 +202,7 @@ const InstallationRegistration = () => {
           )}
 
           <Grid container spacing={3}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Paper className="content-card" sx={{ p: 3 }}>
                 <TableContainer>
                   <Table sx={{ minWidth: 650 }}>
@@ -202,6 +210,7 @@ const InstallationRegistration = () => {
                       <TableRow>
                         <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Pelanggan</TableCell>
                         <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Paket</TableCell>
+                        <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Teknisi</TableCell>
                         <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Alamat Pemasangan</TableCell>
                         <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Status Langganan</TableCell>
                         <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Catatan</TableCell>
@@ -214,7 +223,7 @@ const InstallationRegistration = () => {
                         </TableRow>
                       ) : installations.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} align="center" sx={{ py: 3, color: 'text.secondary' }}>
+                          <TableCell colSpan={6} align="center" sx={{ py: 3, color: 'text.secondary' }}>
                             Belum ada pesanan/langganan aktif.
                           </TableCell>
                         </TableRow>
@@ -235,6 +244,11 @@ const InstallationRegistration = () => {
                               </Typography>
                               <Typography variant="caption" color="text.secondary">
                                 {sub.wifi_package?.speed}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" fontWeight={500}>
+                                {sub.technician?.name || '-'}
                               </Typography>
                             </TableCell>
                             <TableCell sx={{ maxWidth: 260, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -288,6 +302,26 @@ const InstallationRegistration = () => {
                   {packages.map((pkg) => (
                     <MenuItem key={pkg.id} value={pkg.id}>
                       {pkg.name} - {pkg.speed}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                <TextField
+                  select
+                  margin="normal"
+                  fullWidth
+                  label="Teknisi Pemasangan (Opsional)"
+                  value={formData.technician_id}
+                  onChange={(e) => setFormData({ ...formData, technician_id: e.target.value })}
+                  sx={{ mb: 2 }}
+                  SelectProps={{ displayEmpty: true }}
+                >
+                  <MenuItem value="">
+                    <em>Pilih Semua Area (Biarkan Kosong)</em>
+                  </MenuItem>
+                  {technicians.map((tech) => (
+                    <MenuItem key={tech.id} value={tech.id}>
+                      {tech.name}
                     </MenuItem>
                   ))}
                 </TextField>

@@ -18,10 +18,11 @@ import Promo from './pages/Promo';
 import Game from './pages/Game';
 import Technicians from './pages/Technicians';
 import InstallationStatus from './pages/InstallationStatus';
+import TechnicianDashboard from './pages/TechnicianDashboard';
 import './App.css';
 
 // Protected Route Component
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, allowedRoles }) => {
     const { user, loading } = useAuth();
     
     if (loading) {
@@ -30,6 +31,11 @@ const ProtectedRoute = ({ children }) => {
     
     if (!user) {
         return <Navigate to="/login" />;
+    }
+    
+    const userRole = user.role || 'customer';
+    if (allowedRoles && !allowedRoles.includes(userRole)) {
+        return <Navigate to={userRole === 'technician' ? '/technician-dashboard' : '/dashboard'} />;
     }
     
     return children;
@@ -44,7 +50,7 @@ const PublicRoute = ({ children }) => {
     }
 
     if (user) {
-        return <Navigate to="/dashboard" />;
+        return <Navigate to={user.role === 'technician' ? '/technician-dashboard' : '/dashboard'} />;
     }
 
     return children;
@@ -82,8 +88,16 @@ function App() {
                   <Route 
                       path="/dashboard" 
                       element={
-                          <ProtectedRoute>
+                          <ProtectedRoute allowedRoles={['customer', 'admin']}>
                               <Dashboard />
+                          </ProtectedRoute>
+                      } 
+                  />
+                  <Route 
+                      path="/technician-dashboard" 
+                      element={
+                          <ProtectedRoute allowedRoles={['technician']}>
+                              <TechnicianDashboard />
                           </ProtectedRoute>
                       } 
                   />
@@ -122,7 +136,7 @@ function App() {
                   <Route 
                       path="/billing" 
                       element={
-                          <ProtectedRoute>
+                          <ProtectedRoute allowedRoles={['customer', 'admin']}>
                               <Billing />
                           </ProtectedRoute>
                       } 

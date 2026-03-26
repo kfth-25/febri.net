@@ -18,7 +18,7 @@ const Navbar = () => {
         threshold: 20,
     });
 
-    const heroRoutes = ['/', '/packages', '/dashboard', '/speedtest', '/speed-test', '/login', '/register'];
+    const heroRoutes = ['/', '/packages', '/dashboard', '/technician-dashboard', '/speedtest', '/speed-test', '/login', '/register'];
     const isHeroPage = heroRoutes.includes(location.pathname);
     const solidNavbar = trigger || !isHeroPage;
 
@@ -259,9 +259,10 @@ const Navbar = () => {
                         <Box sx={{ ml: 3, display: 'flex', gap: 1.5 }}>
                             {user ? (
                             <>
-                                <Button 
-                                    component={RouterLink} 
-                                    to="/billing" 
+                                {user.role !== 'technician' && (
+                                  <Button 
+                                      component={RouterLink} 
+                                      to="/billing" 
                                     sx={{ 
                                         color: 'inherit',
                                         fontWeight: isActive('/billing') ? 700 : 500,
@@ -277,17 +278,18 @@ const Navbar = () => {
                                             transition: 'width 0.3s'
                                         },
                                         '&:hover::after': {
-                                            width: '100%'
-                                        }
-                                    }}
-                                >
-                                    Tagihan
-                                </Button>
-                                <Button 
-                                    component={RouterLink} 
-                                    to="/dashboard" 
-                                    variant="contained" 
-                                    color="secondary"
+                                      width: '100%'
+                                  }
+                              }}
+                          >
+                              Tagihan
+                          </Button>
+                        )}
+                        <Button 
+                            component={RouterLink} 
+                            to={user.role === 'technician' ? '/technician-dashboard' : '/dashboard'} 
+                            variant="contained" 
+                            color="secondary"
                                     sx={{ boxShadow: '0 4px 14px 0 rgba(0, 229, 255, 0.4)' }}
                                 >
                                     Dashboard
@@ -457,11 +459,12 @@ const Navbar = () => {
                                         Bantuan
                                     </Button>
                                 </ListItem>
-                                <ListItem disablePadding sx={{ mb: 1 }}>
-                                    <Button 
-                                        fullWidth 
-                                        component={RouterLink} 
-                                        to="/billing"
+                                {user.role !== 'technician' && (
+                                  <ListItem disablePadding sx={{ mb: 1 }}>
+                                      <Button 
+                                          fullWidth 
+                                          component={RouterLink} 
+                                          to="/billing"
                                         onClick={() => setMobileOpen(false)}
                                         sx={{ 
                                             justifyContent: 'flex-start', 
@@ -469,16 +472,17 @@ const Navbar = () => {
                                             color: isActive('/billing') ? 'primary.main' : 'text.primary',
                                             fontWeight: isActive('/billing') ? 700 : 500,
                                             bgcolor: isActive('/billing') ? 'rgba(0,0,0,0.05)' : 'transparent'
-                                        }}
-                                    >
-                                        Tagihan
-                                    </Button>
-                                </ListItem>
-                                <ListItem disablePadding sx={{ mb: 1 }}>
-                                    <Button fullWidth variant="outlined" component={RouterLink} to="/dashboard" onClick={() => setMobileOpen(false)}>
-                                        Dashboard
-                                    </Button>
-                                </ListItem>
+                                      }}
+                                  >
+                                      Tagihan
+                                  </Button>
+                              </ListItem>
+                              )}
+                              <ListItem disablePadding sx={{ mb: 1 }}>
+                                  <Button fullWidth variant="outlined" component={RouterLink} to={user.role === 'technician' ? '/technician-dashboard' : '/dashboard'} onClick={() => setMobileOpen(false)}>
+                                      Dashboard
+                                  </Button>
+                              </ListItem>
                                 <ListItem disablePadding>
                                     <Button fullWidth color="error" onClick={() => { handleLogout(); setMobileOpen(false); }}>
                                         Logout

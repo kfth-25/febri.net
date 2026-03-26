@@ -9,6 +9,8 @@ class Subscription extends Model
 {
     use HasFactory;
 
+    protected $table = 'pemasangan';
+
     protected $fillable = [
         'user_id',
         'wifi_package_id',
@@ -21,6 +23,8 @@ class Subscription extends Model
         'notes',
         'scheduled_at',
         'technician_notes',
+        'technician_id',
+        'map_link',
     ];
 
     protected $casts = [
@@ -38,5 +42,10 @@ class Subscription extends Model
     public function wifiPackage()
     {
         return $this->belongsTo(WifiPackage::class);
+    }
+
+    public function technician()
+    {
+        return $this->belongsTo(User::class, 'technician_id');
     }
 }

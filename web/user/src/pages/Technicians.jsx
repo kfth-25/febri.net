@@ -36,70 +36,7 @@ import {
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-
-// Data dummy teknisi (bisa diganti dengan API nanti)
-const technicians = [
-  {
-    id: 1,
-    name: 'Budi Santoso',
-    role: 'Senior Fiber Technician',
-    photo: 'https://i.pravatar.cc/150?img=1',
-    status: 'available', // available, busy, off_duty
-    area: 'Jakarta Barat & Pusat',
-    rating: 4.8,
-    completed_jobs: 1240,
-    skills: ['Fiber Optic', 'Router Setup', 'CCTV'],
-    certifications: ['MTCNA', 'K3 Listrik'],
-    phone: '+62 812-3456-7890',
-    email: 'budi@febrinet.id',
-    experience: 8 // tahun
-  },
-  {
-    id: 2,
-    name: 'Siti Nurhaliza',
-    role: 'Network Engineer',
-    photo: 'https://i.pravatar.cc/150?img=2',
-    status: 'busy',
-    area: 'Jakarta Selatan',
-    rating: 4.9,
-    completed_jobs: 890,
-    skills: ['MikroTik', 'Wireless', 'Troubleshooting'],
-    certifications: ['MTCRE', 'MTCWE'],
-    phone: '+62 813-9876-5432',
-    email: 'siti@febrinet.id',
-    experience: 6
-  },
-  {
-    id: 3,
-    name: 'Ahmad Wijaya',
-    role: 'Field Technician',
-    photo: 'https://i.pravatar.cc/150?img=3',
-    status: 'available',
-    area: 'Jakarta Timur',
-    rating: 4.6,
-    completed_jobs: 650,
-    skills: ['Installation', 'Cable Management', 'Customer Service'],
-    certifications: ['Customer Service'],
-    phone: '+62 815-1234-5678',
-    email: 'ahmad@febrinet.id',
-    experience: 4
-  },
-  {
-    id: 4,
-    name: 'Dewi Lestari',
-    role: 'Fiber Optic Specialist',
-    photo: 'https://i.pravatar.cc/150?img=4',
-    status: 'off_duty',
-    area: 'Jakarta Utara',
-    rating: 4.7,
-    completed_jobs: 1100,
-    skills: ['Fiber Splicing', 'OTDR Testing', 'Network Design'],
-    certifications: ['CFOT', 'MTCNA'],
-    phone: '+62 817-5555-6666',
-    email: 'dewi@febrinet.id',
-    experience: 10
-  }
-];
+import { getTechnicians } from '../services/userService';
 
 const getStatusColor = (status) => {
   switch (status) {
@@ -133,12 +70,44 @@ const getStatusDescription = (status) => {
 };
 
 const Technicians = () => {
+  const [technicians, setTechnicians] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedTech, setSelectedTech] = useState(null);
   const [infoMessage, setInfoMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [hasInstallation, setHasInstallation] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchTechniciansList = async () => {
+      try {
+        const data = await getTechnicians();
+        const formatted = data.map((t, index) => ({
+          id: t.id,
+          name: t.name,
+          role: 'Technician',
+          photo: `https://i.pravatar.cc/150?img=${(index % 70) + 1}`,
+          status: 'available',
+          area: 'Area Layanan',
+          rating: 4.8,
+          completed_jobs: Math.floor(Math.random() * 500) + 50,
+          skills: ['Installation', 'Troubleshooting'],
+          certifications: [],
+          phone: t.phone || '-',
+          email: t.email,
+          experience: 2
+        }));
+        setTechnicians(formatted);
+      } catch (err) {
+        console.error('Failed to load technicians', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTechniciansList();
+  }, []);
+
   const otherTechnicians = selectedTech
     ? technicians.filter((t) => t.id !== selectedTech.id)
     : technicians;

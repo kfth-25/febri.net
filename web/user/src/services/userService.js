@@ -20,3 +20,8 @@ export const changePassword = async (userId, currentPassword, newPassword) => {
     });
     return response.data;
 };
+
+export const getTechnicians = async () => {
+    const response = await api.get('/technicians');
+    return response.data;
+};

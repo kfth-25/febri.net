@@ -17,13 +17,18 @@ class SubscriptionController extends Controller
         $user = $request->user();
 
         if ($user->role === 'admin') {
-            $query = Subscription::with(['user', 'wifiPackage']);
+            $query = Subscription::with(['user', 'wifiPackage', 'technician']);
             
             if ($request->has('status')) {
                 $query->where('status', $request->status);
             }
             
             return $query->latest()->get();
+        } elseif ($user->role === 'technician') {
+            return Subscription::with(['user', 'wifiPackage'])
+                ->where('technician_id', $user->id)
+                ->latest()
+                ->get();
         } else {
             // Customer only sees their own subscriptions
             return Subscription::with(['wifiPackage'])
@@ -41,7 +46,9 @@ class SubscriptionController extends Controller
         $request->validate([
             'wifi_package_id' => 'required|exists:wifi_packages,id',
             'installation_address' => 'required|string',
+            'technician_id' => 'nullable|exists:users,id',
             'notes' => 'nullable|string',
+            'map_link' => 'nullable|url|max:2000',
         ]);
 
         $user = $request->user();
@@ -58,8 +65,10 @@ class SubscriptionController extends Controller
             'user_id' => $targetUserId,
             'wifi_package_id' => $request->wifi_package_id,
             'installation_address' => $request->installation_address,
+            'technician_id' => $request->technician_id,
             'status' => 'pending',
             'notes' => $request->notes,
+            'map_link' => $request->map_link,
         ]);
 
         return response()->json($subscription->load(['wifiPackage', 'user']), 201);
@@ -73,10 +82,12 @@ class SubscriptionController extends Controller
         $request->validate([
             'wifi_package_id' => 'required|exists:wifi_packages,id',
             'installation_address' => 'required|string',
+            'technician_id' => 'nullable|exists:users,id',
             'full_name' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
             'email' => 'nullable|email|max:255',
             'notes' => 'nullable|string',
+            'map_link' => 'nullable|url|max:2000',
         ]);
 
         // Coba cari user berdasarkan email atau no HP
@@ -112,8 +123,10 @@ class SubscriptionController extends Controller
             'user_id' => $user->id,
             'wifi_package_id' => $request->wifi_package_id,
             'installation_address' => $request->installation_address,
+            'technician_id' => $request->technician_id,
             'status' => 'pending',
             'notes' => $request->notes,
+            'map_link' => $request->map_link,
         ]);
 
         return response()->json($subscription->load(['wifiPackage', 'user']), 201);
@@ -142,8 +155,8 @@ class SubscriptionController extends Controller
         $subscription = Subscription::findOrFail($id);
         $user = $request->user();
 
-        // Only admin can update status and dates
-        if ($user->role === 'admin') {
+        // Only admin and technician can update system fields
+        if ($user->role === 'admin' || $user->role === 'technician') {
             $validated = $request->validate([
                 'status'            => 'nullable|in:pending,active,suspended,terminated',
                 'installation_step' => 'nullable|in:pending,scheduled,installing,done',
@@ -153,7 +166,20 @@ class SubscriptionController extends Controller
                 'scheduled_at'      => 'nullable|date',
                 'technician_notes'  => 'nullable|string|max:500',
                 'notes'             => 'nullable|string',
+                'technician_id'     => 'nullable|exists:users,id',
+                'map_link'          => 'nullable|url|max:2000',
             ]);
+
+            if ($user->role === 'technician') {
+                if ($subscription->technician_id !== $user->id) {
+                    return response()->json(['message' => 'Unauthorized: Not assigned to you'], 403);
+                }
+                // Technicians cannot assign to someone else or change core subscription status
+                unset($validated['technician_id']);
+                unset($validated['status']);
+                unset($validated['expires_at']);
+                unset($validated['activated_at']);
+            }
 
             $oldStep   = $subscription->installation_step;
             $oldStatus = $subscription->status;
@@ -224,6 +250,7 @@ class SubscriptionController extends Controller
                 $validated = $request->validate([
                     'installation_address' => 'required|string',
                     'notes' => 'nullable|string',
+                    'map_link' => 'nullable|url|max:2000',
                 ]);
                 $subscription->update($validated);
             } else {
