@@ -24,148 +24,209 @@ class TaskDetailScreen extends StatelessWidget {
     final data = job['originalData'] ?? {};
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Detail Tugas', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-        backgroundColor: AppTheme.primaryColor,
-        foregroundColor: Colors.white,
-      ),
+      backgroundColor: AppTheme.backgroundColor,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(isPemasangan),
-            const SizedBox(height: 24),
-            _buildSection(
-              title: 'Informasi Pelanggan',
-              items: [
-                _buildInfoRow('Nama', job['customer']),
-                _buildInfoRow('Telepon', job['phone']),
-                _buildInfoRow('Alamat', job['address']),
-              ],
-            ),
-            if (job['map_link'] != null && job['map_link'].toString().isNotEmpty) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _openMap,
-                  icon: const Icon(Icons.map_outlined),
-                  label: const Text('Buka di Google Maps'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    side: BorderSide(color: AppTheme.primaryColor),
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: 24),
-            _buildSection(
-              title: isPemasangan ? 'Detail Pemasangan' : 'Detail Gangguan',
-              items: [
-                if (isPemasangan) _buildInfoRow('Paket', job['package'] ?? '-'),
-                if (!isPemasangan) _buildInfoRow('Subjek', job['issue'] ?? '-'),
-                _buildInfoRow('Tgl Pengajuan', job['date']),
-                _buildInfoRow('Status', job['status'] == 'in_progress' ? 'Sedang Dikerjakan' : 'Menunggu'),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Catatan / Pesan Pelanggan',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
+            // Header
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(20, 56, 20, 32),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
+                color: AppTheme.primaryColor,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF0B1220),
+                    Color(0xFF102536),
+                  ],
+                ),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(32),
+                  bottomRight: Radius.circular(32),
+                ),
               ),
-              child: Text(
-                data['notes'] ?? 'Tidak ada catatan tambahan.',
-                style: GoogleFonts.poppins(color: Colors.black87),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      InkWell(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: (isPemasangan ? const Color(0xFF3A5BFA) : Colors.orange).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: Text(
+                          isPemasangan ? 'PEMASANGAN' : 'PERBAIKAN',
+                          style: GoogleFonts.poppins(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'TIKET ID: ${job['id']}',
+                    style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Detail Tugas',
+                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 40),
-            if (job['status'] == 'pending')
-              _buildActionButton(
-                label: 'Mulai Kerjakan',
-                color: AppTheme.primaryColor,
-                onPressed: () {
-                  // TODO: Implement update status to in_progress
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Fitur update status segera hadir.')),
-                  );
-                },
+
+            Padding(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).padding.bottom + 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSection(
+                    title: 'Informasi Pelanggan',
+                    icon: Icons.person_rounded,
+                    items: [
+                      _buildInfoRow('Nama', job['customer']),
+                      _buildInfoRow('Telepon', job['phone']),
+                      _buildInfoRow('Alamat', job['address']),
+                    ],
+                  ),
+                  
+                  if (job['map_link'] != null && job['map_link'].toString().isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _openMap,
+                        icon: const Icon(Icons.map_outlined, size: 18),
+                        label: Text('Buka di Google Maps', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00D4C9).withOpacity(0.1),
+                          foregroundColor: const Color(0xFF00D4C9),
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: const BorderSide(color: Color(0xFF00D4C9), width: 1),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  
+                  const SizedBox(height: 28),
+                  
+                  _buildSection(
+                    title: isPemasangan ? 'Detail Pemasangan' : 'Detail Gangguan',
+                    icon: isPemasangan ? Icons.wifi_rounded : Icons.build_circle_rounded,
+                    items: [
+                      if (isPemasangan) _buildInfoRow('Paket WiFi', job['package'] ?? '-'),
+                      if (!isPemasangan) _buildInfoRow('Subjek', job['issue'] ?? '-'),
+                      _buildInfoRow('Tgl Pengajuan', job['date']),
+                      _buildInfoRow('Status Tiket', job['status'] == 'in_progress' ? 'Sedang Dikerjakan' : 'Terbuka'),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 28),
+                  
+                  Text(
+                    'Catatan Pelanggan',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w800, fontSize: 16, color: AppTheme.primaryColor),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Text(
+                      data['notes'] != null && data['notes'].toString().isNotEmpty ? data['notes'] : 'Tidak ada catatan tambahan dari pelanggan.',
+                      style: GoogleFonts.poppins(color: const Color(0xFF1E293B), height: 1.5, fontSize: 14),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 40),
+                  
+                  if (job['status'] == 'pending' || job['status'] == 'Terbuka')
+                    _buildActionButton(
+                      label: 'MULAI KERJAKAN',
+                      color: AppTheme.primaryColor,
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Status diperbarui menjadi dikerjakan.')),
+                        );
+                      },
+                    ),
+                  if (job['status'] == 'in_progress' || job['status'] == 'Dikerjakan')
+                    _buildActionButton(
+                      label: 'SELESAIKAN TUGAS',
+                      color: const Color(0xFF10B981),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Tugas telah diselesaikan.')),
+                        );
+                      },
+                    ),
+                ],
               ),
-            if (job['status'] == 'in_progress')
-              _buildActionButton(
-                label: 'Selesaikan Tugas',
-                color: Colors.green,
-                onPressed: () {
-                  // TODO: Implement update status to completed
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Fitur penyelesaian tugas segera hadir.')),
-                  );
-                },
-              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(bool isPemasangan) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: (isPemasangan ? Colors.blue : Colors.red).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            isPemasangan ? Icons.wifi_protected_setup : Icons.error_outline,
-            color: isPemasangan ? Colors.blue : Colors.red,
-            size: 32,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isPemasangan ? 'Pemasangan Baru' : 'Perbaikan Gangguan',
-              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Tiket ID: ${job['id']}',
-              style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSection({required String title, required List<Widget> items}) {
+  Widget _buildSection({required String title, required IconData icon, required List<Widget> items}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
+        Row(
+          children: [
+            Icon(icon, size: 20, color: AppTheme.primaryColor),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w800, fontSize: 16, color: AppTheme.primaryColor),
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
-        ...items,
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            children: items,
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -173,13 +234,13 @@ class TaskDetailScreen extends StatelessWidget {
             width: 100,
             child: Text(
               label,
-              style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 14),
+              style: GoogleFonts.poppins(color: Colors.grey[500], fontSize: 13, fontWeight: FontWeight.w500),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500),
+              style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1E293B)),
             ),
           ),
         ],
@@ -190,18 +251,19 @@ class TaskDetailScreen extends StatelessWidget {
   Widget _buildActionButton({required String label, required Color color, required VoidCallback onPressed}) {
     return SizedBox(
       width: double.infinity,
-      height: 54,
+      height: 56,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shadowColor: color.withOpacity(0.3),
         ),
         child: Text(
           label,
-          style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5),
         ),
       ),
     );

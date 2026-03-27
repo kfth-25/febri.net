@@ -10,6 +10,7 @@ import '../../providers/auth_provider.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/grid_background_painter.dart';
 import '../home/dashboard_screen.dart'; // For navigation back to home
+import './technician_selection_screen.dart';
 
 class InstallationScreen extends StatefulWidget {
   final String? preselectedPackageId;
@@ -504,7 +505,7 @@ class _InstallationScreenState extends State<InstallationScreen> {
               onTap: () async {
                 final selected = await Navigator.push<Map<String, dynamic>>(
                   context,
-                  MaterialPageRoute(builder: (_) => const TechnicianSelectionScreen()),
+                  MaterialPageRoute(builder: (_) => TechnicianSelectionScreen()),
                 );
                 if (selected != null) {
                   setState(() {

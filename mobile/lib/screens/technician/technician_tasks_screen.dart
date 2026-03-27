@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../utils/app_theme.dart';
 import '../../services/technician_service.dart';
 import 'task_detail_screen.dart';
@@ -9,17 +11,11 @@ class TechnicianTasksScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context);
+    final user = auth.user;
+
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Daftar Tugas',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: AppTheme.primaryColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
+      backgroundColor: AppTheme.backgroundColor,
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: TechnicianService().fetchJobs(),
         builder: (context, snapshot) {
@@ -30,29 +26,107 @@ class TechnicianTasksScreen extends StatelessWidget {
           final jobs = snapshot.data ?? [];
           final activeJobs = jobs.where((j) => j['status'] != 'completed').toList();
 
-          if (activeJobs.isEmpty) {
-            return Center(
-              child: Text(
-                'Tidak ada tugas saat ini.',
-                style: GoogleFonts.poppins(color: Colors.grey),
-              ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: activeJobs.length,
-            itemBuilder: (context, index) {
-              final job = activeJobs[index];
-              final statusText = job['status'] == 'in_progress' ? 'Dikerjakan' : 'Terbuka';
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _buildTaskCard(
-                  context,
-                  job: job,
+          return Column(
+            children: [
+              // Header
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(20, 56, 20, 32),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF0B1220),
+                      Color(0xFF102536),
+                    ],
+                  ),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(32),
+                    bottomRight: Radius.circular(32),
+                  ),
                 ),
-              );
-            },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        InkWell(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
+                          ),
+                        ),
+                        Container(
+                          width: 34,
+                          height: 34,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF00D4C9),
+                            shape: BoxShape.circle,
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            (user?['name'] ?? 'T')[0].toUpperCase(),
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF082A3A),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'TUGAS AKTIF',
+                      style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Daftar Tugas',
+                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800),
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: activeJobs.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.assignment_turned_in_outlined, size: 64, color: Colors.grey[300]),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Tidak ada tugas saat ini.',
+                              style: GoogleFonts.poppins(color: Colors.grey[500], fontSize: 16),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).padding.bottom + 20),
+                        itemCount: activeJobs.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _buildTaskCard(
+                              context,
+                              job: activeJobs[index],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           );
         },
       ),
@@ -71,13 +145,13 @@ class TechnicianTasksScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -88,66 +162,83 @@ class TechnicianTasksScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: isPemasangan ? Colors.blue.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: (isPemasangan ? const Color(0xFF3A5BFA) : Colors.orange).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: (isPemasangan ? const Color(0xFF3A5BFA) : Colors.orange).withOpacity(0.2)),
                 ),
                 child: Text(
                   type,
                   style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: isPemasangan ? Colors.blue : Colors.red,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: isPemasangan ? const Color(0xFF3A5BFA) : Colors.orange,
                   ),
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: status == 'Terbuka' || status == 'Pending' || status == 'pending' ? Colors.orange.withOpacity(0.1) : Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: (status == 'Dikerjakan' ? const Color(0xFF10B981) : const Color(0xFFF59E0B)).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(
-                  status,
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: status == 'Terbuka' || status == 'Pending' || status == 'pending' ? Colors.orange : Colors.green,
-                  ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: status == 'Dikerjakan' ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      status.toUpperCase(),
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: status == 'Dikerjakan' ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(customer, style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  address,
-                  style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 13),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
-              const SizedBox(width: 4),
-              Text(
-                date,
-                style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 13),
               ),
             ],
           ),
           const SizedBox(height: 16),
+          Text(customer, style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.primaryColor)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.location_on_rounded, size: 16, color: Colors.grey[400]),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  address,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(Icons.calendar_today_rounded, size: 14, color: Colors.grey[400]),
+              const SizedBox(width: 6),
+              Text(
+                date,
+                style: GoogleFonts.poppins(color: Colors.grey[500], fontSize: 13, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
+            height: 48,
             child: ElevatedButton(
               onPressed: () {
                 Navigator.push(
@@ -156,12 +247,14 @@ class TechnicianTasksScreen extends StatelessWidget {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.secondaryColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               child: Text(
                 'Lihat Detail Tugas',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 14),
               ),
             ),
           ),

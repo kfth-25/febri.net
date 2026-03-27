@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../utils/app_theme.dart';
 
@@ -13,9 +16,7 @@ class TechnicianSelectionScreen extends StatefulWidget {
       _TechnicianSelectionScreenState();
 }
 
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+
 
 class _TechnicianSelectionScreenState extends State<TechnicianSelectionScreen> {
   List<_Technician> _technicians = [];
