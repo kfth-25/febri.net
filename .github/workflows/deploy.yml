@@ -26,15 +26,19 @@ jobs:
 
       - name: Install Composer dependencies
         run: composer install --no-progress --prefer-dist
+        working-directory: ./backend
 
       - name: Copy .env
         run: cp .env.example .env
+        working-directory: ./backend
 
       - name: Generate app key
         run: php artisan key:generate
+        working-directory: ./backend
 
       - name: Run PHPUnit tests
         run: php artisan test
+        working-directory: ./backend
 
   build-and-push:
     name: Build & Push Docker Image
@@ -59,7 +63,7 @@ jobs:
       - name: Build & Push Docker Image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./backend
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
