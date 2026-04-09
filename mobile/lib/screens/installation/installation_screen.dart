@@ -127,7 +127,7 @@ class _InstallationScreenState extends State<InstallationScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.1.5:8000/api/register-installation'),
+        Uri.parse('http://192.168.11.158:8000/api/register-installation'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',

@@ -30,23 +30,44 @@ Viewed api.js:1-38
 
 I've completed my exhaustive search for hardcoded IP and server addresses across the backend, web, and mobile directories. I've identified all locations containing `192.168.1.5`, as well as several `localhost` and `127.0.0.1` mentions that may require adjustment for external access. I'm now providing the complete list to the user.
 
-Saya telah menemukan semua file yang menggunakan IP `192.168.1.5` (yang kemungkinan besar saya tambahkan kemarin untuk keperluan koneksi mobile/socket). Berikut adalah daftar lokasinya:
+Saya telah menemukan semua file yang menggunakan IP `192.168.11.158` (IP ini adalah IP aktif Wi-Fi Anda saat ini). Berikut adalah daftar lokasinya:
 
 ### **1. Mobile App (Flutter)**
 File-file ini wajib menggunakan IP agar bisa terhubung ke server dari HP:
 - `mobile/lib/providers/auth_provider.dart` (Line 10)
 - `mobile/lib/services/socket_service.dart` (Line 25)
 - `mobile/lib/services/technician_service.dart` (Line 6)
-- `mobile/lib/screens/installation/technician_selection_screen.dart` (Line 35)
-- `mobile/lib/screens/installation/installation_screen.dart` (Line 129)
+- `mobile/lib/screens/installation/technician_selection_screen.dart` (Line 36)
+- `mobile/lib/screens/installation/installation_screen.dart` (Line 130)
 
-### **2. Socket Server (Node.js)**
-- `socket-server/server.js` (Line 70 & 71) — Digunakan agar Socket server mendengarkan (listen) pada IP tersebut.
+### **2. Web Dashboard**
+File-file ini wajib diarahkan ke IP server jika diakses dari perangkat lain selain localhost:
+- `web/.env` (VITE_API_BASE_URL)
+- `web/user/.env` (VITE_API_BASE_URL)
+- `web/src/services/auth.js` (Backup fallback jika .env tidak terbaca)
+- `web/user/src/services/api.js` (Backup fallback jika .env tidak terbaca)
 
-### **3. File yang masih menggunakan `localhost` / `127.0.0.1`**
-(Mungkin perlu diubah ke IP jika ingin diakses dari perangkat lain):
-- `web/user/src/components/ChatWidget.jsx` (Line 61) — Masih `localhost:8001`.
-- `web/src/services/auth.js` — Masih `127.0.0.1:8000`.
-- `web/user/src/services/api.js` — Masih `127.0.0.1:8000`.
+### **3. Socket Server (Node.js)**
+- `socket-server/server.js` (Line 70 & 71)
 
-**Catatan:** Anda sedang menjalankan `php artisan serve` dengan `--host=192.168.1.5`, jadi konfigurasi di atas sudah sesuai untuk saat ini. Apakah ada yang ingin diubah ke domain atau IP lain?
+### **4. Kredensial Login (Akses Masuk)**
+
+| Peran (Role) | Email | Kata Sandi (Password) |
+| :--- | :--- | :--- |
+| **Admin Web** | `admin@wifi.net` | **`password123`** |
+| **User Mobile / Web** | `user@febri.net` | **`user123`** |
+| **Teknisi** | `tech@febri.net` | **`tech123`** |
+
+**Catatan:** Jalankan `php artisan serve --host=192.168.11.158 --port=8000` untuk memulai server backend.
+
+php artisan serve --host=192.168.1.4 --port=8000
+
+Peran (Role)	Email	Kata Sandi (Password)
+Admin Web	admin@wifi.net	password123
+
+User Mobile / Web	user@febri.net	user123
+
+sudh pemasangan Email: subscriber@febri.net
+Password: password
+
+Teknisi	tech@febri.net	tech123

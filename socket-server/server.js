@@ -67,6 +67,6 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '192.168.1.5', () => {
-  console.log(`Socket.IO Server berjalan di http://192.168.1.5:${PORT}`);
+server.listen(PORT, '192.168.11.158', () => {
+  console.log(`Socket.IO Server berjalan di http://192.168.11.158:${PORT}`);
 });

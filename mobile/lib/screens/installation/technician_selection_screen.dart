@@ -33,7 +33,7 @@ class _TechnicianSelectionScreenState extends State<TechnicianSelectionScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
       
-      final url = Uri.parse('http://192.168.1.5:8000/api/technicians');
+      final url = Uri.parse('http://192.168.11.158:8000/api/technicians');
       final response = await http.get(
         url,
         headers: {

@@ -22,7 +22,7 @@ class SocketService {
 
   // Ganti dengan IP komputer Anda jika debugging di physical device
   // Contoh: 'http://192.168.1.5:3000'
-  final String _serverUrl = 'http://192.168.1.5:3000';
+  final String _serverUrl = 'http://192.168.11.158:3000';
 
   void connect(String userChannel) {
     if (_socket != null && _socket!.connected) return;
