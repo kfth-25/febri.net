@@ -53,10 +53,11 @@ const Footer = () => {
                             Perusahaan
                         </Typography>
                         <Stack spacing={1.5}>
-                            <Link href="#" color="inherit" underline="hover" sx={{ transition: '0.2s', '&:hover': { color: 'secondary.main' } }}>Tentang Kami</Link>
+                            <Link href="/about" color="inherit" underline="hover" sx={{ transition: '0.2s', '&:hover': { color: 'secondary.main' } }}>Tentang Kami</Link>
                             <Link href="#" color="inherit" underline="hover" sx={{ transition: '0.2s', '&:hover': { color: 'secondary.main' } }}>Karir</Link>
                             <Link href="#" color="inherit" underline="hover" sx={{ transition: '0.2s', '&:hover': { color: 'secondary.main' } }}>Blog</Link>
                             <Link href="#" color="inherit" underline="hover" sx={{ transition: '0.2s', '&:hover': { color: 'secondary.main' } }}>Kebijakan Privasi</Link>
+                            <Link href="/contact" color="inherit" underline="hover" sx={{ transition: '0.2s', '&:hover': { color: 'secondary.main' } }}>Kontak</Link>
                         </Stack>
                     </Grid>
 

@@ -4,6 +4,7 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../providers/notification_provider.dart';
 import 'notification_service.dart';
 import '../main.dart';
+import '../utils/config.dart';
 
 class SocketService {
   // Singleton pattern
@@ -21,8 +22,7 @@ class SocketService {
   bool get isConnected => _isConnected;
 
   // Ganti dengan IP komputer Anda jika debugging di physical device
-  // Contoh: 'http://192.168.1.5:3000'
-  final String _serverUrl = 'http://192.168.11.158:3000';
+  final String _serverUrl = AppConfig.socketUrl;
 
   void connect(String userChannel) {
     if (_socket != null && _socket!.connected) return;

@@ -19,6 +19,9 @@ import Game from './pages/Game';
 import Technicians from './pages/Technicians';
 import InstallationStatus from './pages/InstallationStatus';
 import TechnicianDashboard from './pages/TechnicianDashboard';
+import AboutUs from './pages/AboutUs';
+import ContactUs from './pages/ContactUs';
+import Business from './pages/Business';
 import './App.css';
 
 // Protected Route Component
@@ -69,6 +72,9 @@ function App() {
                   <Route path="/promo" element={<Promo />} />
                   <Route path="/game" element={<Game />} />
                   <Route path="/speedtest" element={<SpeedTest />} />
+                  <Route path="/about" element={<AboutUs />} />
+                  <Route path="/contact" element={<ContactUs />} />
+                  <Route path="/business" element={<Business />} />
                   <Route 
                       path="/login" 
                       element={

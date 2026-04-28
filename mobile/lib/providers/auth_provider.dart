@@ -5,9 +5,10 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/fcm_service.dart';
 import '../services/socket_service.dart';
+import '../utils/config.dart';
 
 class AuthProvider with ChangeNotifier {
-  static const String _baseUrl = 'http://192.168.11.158:8000/api';
+  static const String _baseUrl = AppConfig.baseUrl;
 
   bool _isAuthenticated = false;
   bool _isLoading = true;

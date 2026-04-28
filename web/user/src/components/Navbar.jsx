@@ -5,6 +5,10 @@ import { useAuth } from '../context/AuthContext';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import RouterIcon from '@mui/icons-material/Router';
+import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
+import HandymanIcon from '@mui/icons-material/Handyman';
+import ContactSupportIcon from '@mui/icons-material/ContactSupport';
 
 const Navbar = () => {
     const { user, logout } = useAuth();
@@ -18,8 +22,11 @@ const Navbar = () => {
         threshold: 20,
     });
 
-    const heroRoutes = ['/', '/packages', '/dashboard', '/technician-dashboard', '/speedtest', '/speed-test', '/login', '/register'];
-    const isHeroPage = heroRoutes.includes(location.pathname);
+    const heroRoutes = ['/', '/packages', '/dashboard', '/technician-dashboard', '/speedtest', '/speed-test', '/login', '/register', '/about', '/contact', '/business'];
+    const isHeroPage = heroRoutes.some(route => location.pathname === route) || 
+                       location.pathname.toLowerCase().startsWith('/about') || 
+                       location.pathname.toLowerCase().startsWith('/contact') ||
+                       location.pathname.toLowerCase().startsWith('/business');
     const solidNavbar = trigger || !isHeroPage;
 
     const handleLogout = async () => {
@@ -32,7 +39,7 @@ const Navbar = () => {
     ];
 
     const isActive = (path) => location.pathname === path;
-    const isLayananActive = ['/packages', '/installation'].includes(location.pathname);
+    const isLayananActive = ['/packages', '/installation', '/technicians', '/contact'].includes(location.pathname);
 
     const handleOpenLayanan = (event) => {
         setAnchorLayanan(event.currentTarget);
@@ -46,16 +53,19 @@ const Navbar = () => {
         <AppBar 
             position="fixed" 
             elevation={solidNavbar ? 4 : 0}
-            sx={{
+            sx={(theme) => ({
                 width: '100%',
-                zIndex: (theme) => theme.zIndex.drawer + 1,
-                bgcolor: solidNavbar ? 'rgba(255, 255, 255, 0.95)' : 'transparent',
+                zIndex: theme.zIndex.drawer + 1,
+                backgroundColor: solidNavbar ? 'rgba(255, 255, 255, 0.95) !important' : `${theme.palette.primary.main} !important`,
+                background: solidNavbar ? 'rgba(255, 255, 255, 0.95) !important' : `${theme.palette.primary.main} !important`,
+                backgroundImage: 'none !important',
                 backdropFilter: solidNavbar ? 'blur(10px)' : 'none',
                 color: solidNavbar ? 'text.primary' : 'white',
-                transition: 'all 0.3s ease',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                 borderBottom: solidNavbar ? '1px solid' : 'none',
                 borderColor: 'divider',
-            }}
+                boxShadow: solidNavbar ? '0 4px 20px rgba(0,0,0,0.1)' : 'none',
+            })}
         >
             <Container maxWidth="xl">
                 {/* Top Bar - Corporate Utility Menu */}
@@ -63,19 +73,55 @@ const Navbar = () => {
                     display: { xs: 'none', md: 'flex' }, 
                     justifyContent: 'space-between', 
                     py: 1,
+                    bgcolor: 'transparent',
                     borderBottom: '1px solid',
-                    borderColor: solidNavbar ? 'divider' : 'rgba(255,255,255,0.1)',
-                    color: solidNavbar ? 'text.secondary' : 'rgba(255,255,255,0.7)',
-                    transition: 'all 0.3s ease',
+                    borderColor: solidNavbar ? 'divider' : 'rgba(255,255,255,0.2)',
+                    color: solidNavbar ? 'text.secondary' : 'rgba(255,255,255,0.9)',
+                    transition: 'all 0.4s ease',
                 }}>
                     <Box sx={{ display: 'flex', gap: 3 }}>
-                        <Typography variant="caption" sx={{ fontWeight: 'bold', cursor: 'pointer', letterSpacing: 0.5, '&:hover': { color: solidNavbar ? 'primary.main' : 'white' } }}>
+                        <Typography 
+                            variant="caption" 
+                            component={RouterLink}
+                            to="/"
+                            sx={{ 
+                                fontWeight: location.pathname === '/' ? 'bold' : 'normal', 
+                                cursor: 'pointer', 
+                                letterSpacing: 0.5, 
+                                textDecoration: 'none',
+                                color: 'inherit',
+                                '&:hover': { color: solidNavbar ? 'primary.main' : 'white' } 
+                            }}
+                        >
                             PERSONAL
                         </Typography>
-                        <Typography variant="caption" sx={{ cursor: 'pointer', letterSpacing: 0.5, '&:hover': { color: solidNavbar ? 'primary.main' : 'white' } }}>
+                        <Typography 
+                            variant="caption" 
+                            component={RouterLink}
+                            to="/business"
+                            sx={{ 
+                                fontWeight: location.pathname === '/business' ? 'bold' : 'normal',
+                                cursor: 'pointer', 
+                                letterSpacing: 0.5, 
+                                textDecoration: 'none',
+                                color: 'inherit',
+                                '&:hover': { color: solidNavbar ? 'primary.main' : 'white' } 
+                            }}
+                        >
                             BISNIS
                         </Typography>
-                        <Typography variant="caption" sx={{ cursor: 'pointer', letterSpacing: 0.5, '&:hover': { color: solidNavbar ? 'primary.main' : 'white' } }}>
+                        <Typography 
+                            variant="caption" 
+                            component={RouterLink}
+                            to="/about"
+                            sx={{ 
+                                cursor: 'pointer', 
+                                letterSpacing: 0.5, 
+                                textDecoration: 'none',
+                                color: 'inherit',
+                                '&:hover': { color: solidNavbar ? 'primary.main' : 'white' } 
+                            }}
+                        >
                             TENTANG KAMI
                         </Typography>
                     </Box>
@@ -236,22 +282,70 @@ const Navbar = () => {
                                     component={RouterLink}
                                     to="/packages"
                                     onClick={handleCloseLayanan}
+                                    sx={{ 
+                                        py: 1.5, 
+                                        px: 2,
+                                        gap: 2,
+                                        '&:hover': { bgcolor: 'rgba(0, 229, 255, 0.08)' }
+                                    }}
                                 >
-                                    Paket Internet
+                                    <RouterIcon sx={{ color: 'secondary.main', fontSize: 20 }} />
+                                    <Box>
+                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>Paket Internet</Typography>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>Pilihan paket internet cepat</Typography>
+                                    </Box>
                                 </MenuItem>
                                 <MenuItem
                                     component={RouterLink}
                                     to="/installation"
                                     onClick={handleCloseLayanan}
+                                    sx={{ 
+                                        py: 1.5, 
+                                        px: 2,
+                                        gap: 2,
+                                        '&:hover': { bgcolor: 'rgba(0, 229, 255, 0.08)' }
+                                    }}
                                 >
-                                    Daftar Pemasangan
+                                    <AppRegistrationIcon sx={{ color: 'secondary.main', fontSize: 20 }} />
+                                    <Box>
+                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>Daftar Pemasangan</Typography>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>Pasang baru Febri.net</Typography>
+                                    </Box>
                                 </MenuItem>
                                 <MenuItem
                                     component={RouterLink}
                                     to="/technicians"
                                     onClick={handleCloseLayanan}
+                                    sx={{ 
+                                        py: 1.5, 
+                                        px: 2,
+                                        gap: 2,
+                                        '&:hover': { bgcolor: 'rgba(0, 229, 255, 0.08)' }
+                                    }}
                                 >
-                                    Teknisi
+                                    <HandymanIcon sx={{ color: 'secondary.main', fontSize: 20 }} />
+                                    <Box>
+                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>Cek Teknisi</Typography>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>Lihat teknisi di area Anda</Typography>
+                                    </Box>
+                                </MenuItem>
+                                <Box sx={{ my: 1, borderTop: '1px solid', borderColor: 'divider' }} />
+                                <MenuItem
+                                    component={RouterLink}
+                                    to="/contact"
+                                    onClick={handleCloseLayanan}
+                                    sx={{ 
+                                        py: 1.5, 
+                                        px: 2,
+                                        gap: 2,
+                                        '&:hover': { bgcolor: 'rgba(0, 229, 255, 0.08)' }
+                                    }}
+                                >
+                                    <ContactSupportIcon sx={{ color: 'secondary.main', fontSize: 20 }} />
+                                    <Box>
+                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>Hubungi Kami</Typography>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>Support dan layanan 24/7</Typography>
+                                    </Box>
                                 </MenuItem>
                             </Menu>
                         </Box>
@@ -436,6 +530,23 @@ const Navbar = () => {
                                 }}
                             >
                                 Teknisi
+                            </Button>
+                        </ListItem>
+                        <ListItem disablePadding sx={{ mb: 1 }}>
+                            <Button 
+                                fullWidth 
+                                component={RouterLink} 
+                                to="/contact"
+                                onClick={() => setMobileOpen(false)}
+                                sx={{ 
+                                    justifyContent: 'flex-start', 
+                                    py: 1.5,
+                                    color: isActive('/contact') ? 'primary.main' : 'text.primary',
+                                    fontWeight: isActive('/contact') ? 700 : 500,
+                                    bgcolor: isActive('/contact') ? 'rgba(0,0,0,0.05)' : 'transparent'
+                                }}
+                            >
+                                Hubungi Kami
                             </Button>
                         </ListItem>
                         <Box sx={{ my: 2, borderTop: '1px solid', borderColor: 'divider' }} />

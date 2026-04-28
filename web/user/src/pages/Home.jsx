@@ -157,10 +157,18 @@ const Home = () => {
                 </Container>
             </Box>
 
-            {/* Stats Section */}
-            <Box sx={{ bgcolor: 'background.paper', py: 6, borderBottom: '1px solid', borderColor: 'divider' }}>
-                <Container maxWidth="xl">
-                    <Grid container spacing={4} justifyContent="center">
+            {/* Stats Section - Floating Overlap */}
+            <Container maxWidth="lg" sx={{ mt: -6, position: 'relative', zIndex: 2 }}>
+                <Paper 
+                    elevation={10} 
+                    sx={{ 
+                        py: 4, 
+                        borderRadius: 6, 
+                        bgcolor: 'background.paper',
+                        boxShadow: '0 20px 50px rgba(0,0,0,0.1)'
+                    }}
+                >
+                    <Grid container spacing={2} justifyContent="center" alignItems="center">
                         {[
                             { value: '10k+', label: 'Pelanggan Aktif' },
                             { value: '99.9%', label: 'Uptime Service' },
@@ -171,46 +179,46 @@ const Home = () => {
                                 <Typography variant="h3" color="primary.main" fontWeight="bold">
                                     {stat.value}
                                 </Typography>
-                                <Typography variant="body1" color="text.secondary">
+                                <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
                                     {stat.label}
                                 </Typography>
                             </Grid>
                         ))}
                     </Grid>
-                </Container>
-            </Box>
+                </Paper>
+            </Container>
 
             {/* Features Section */}
-            <Container maxWidth="xl" sx={{ py: 10 }}>
-                <Box textAlign="center" mb={8}>
+            <Container maxWidth="xl" sx={{ py: 15 }}>
+                <Box textAlign="center" mb={10}>
                     <Typography variant="overline" color="secondary.main" fontWeight="bold" letterSpacing={2}>
                         KENAPA KAMI
                     </Typography>
                     <Typography variant="h2" component="h2" gutterBottom fontWeight="800" sx={{ mt: 1 }}>
                         Solusi Internet Masa Depan
                     </Typography>
-                    <Typography variant="body1" color="text.secondary" maxWidth="600px" mx="auto">
-                        Teknologi terbaru untuk memastikan Anda selalu terhubung dengan dunia.
+                    <Typography variant="body1" color="text.secondary" maxWidth="700px" mx="auto">
+                        Kami menghadirkan infrastruktur fiber optik tercanggih untuk mendukung gaya hidup digital Anda yang tanpa batas.
                     </Typography>
                 </Box>
 
-                <Grid container spacing={4}>
+                <Grid container spacing={4} justifyContent="center">
                     <FeatureCard
-                        icon={<SpeedIcon fontSize="large" />}
+                        icon={<SpeedIcon sx={{ fontSize: 40 }} />}
                         title="Ultra High Speed"
-                        desc="Nikmati kecepatan download dan upload simetris hingga 1 Gbps untuk kebutuhan berat."
+                        desc="Nikmati kecepatan internet hingga 1 Gbps dengan latensi sangat rendah, cocok untuk gaming, streaming 4K, dan kebutuhan profesional."
                         delay={0.1}
                     />
                     <FeatureCard
-                        icon={<SecurityIcon fontSize="large" />}
+                        icon={<SecurityIcon sx={{ fontSize: 40 }} />}
                         title="Aman & Terpercaya"
-                        desc="Dilengkapi fitur keamanan tingkat tinggi untuk melindungi privasi keluarga Anda."
+                        desc="Sistem keamanan berlapis dan proteksi privasi tingkat tinggi yang menjaga data keluarga Anda tetap aman selama berselancar."
                         delay={0.2}
                     />
                     <FeatureCard
-                        icon={<SupportAgentIcon fontSize="large" />}
+                        icon={<SupportAgentIcon sx={{ fontSize: 40 }} />}
                         title="Support Prioritas"
-                        desc="Tim teknis profesional kami siap membantu kendala Anda kapan saja, 24 jam sehari."
+                        desc="Tim teknisi berpengalaman yang selalu siap siaga 24/7 untuk memastikan koneksi Anda tetap lancar tanpa gangguan berarti."
                         delay={0.3}
                     />
                 </Grid>

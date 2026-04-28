@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/config.dart';
 
 class TechnicianService {
-  static const String _baseUrl = 'http://192.168.11.158:8000/api';
+  static const String _baseUrl = AppConfig.baseUrl;
 
   Future<List<Map<String, dynamic>>> fetchJobs() async {
     final prefs = await SharedPreferences.getInstance();

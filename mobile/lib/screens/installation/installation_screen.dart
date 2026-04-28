@@ -9,6 +9,7 @@ import 'dart:convert';
 import '../../providers/auth_provider.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/grid_background_painter.dart';
+import '../../utils/config.dart';
 import '../home/dashboard_screen.dart'; // For navigation back to home
 import './technician_selection_screen.dart';
 
@@ -127,7 +128,7 @@ class _InstallationScreenState extends State<InstallationScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.11.158:8000/api/register-installation'),
+        Uri.parse('${AppConfig.baseUrl}/register-installation'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
